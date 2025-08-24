@@ -62,6 +62,51 @@ function pickName(props, keys) {
   return "";
 }
 
+// --- UK-specific name resolver (handles ONS fields & code->name) ---
+const UK_COUNTRY_CODE_MAP = {
+  E92000001: "England",
+  S92000003: "Scotland",
+  W92000004: "Wales",
+  N92000002: "Northern Ireland",
+};
+
+function pickNameUK(props) {
+  if (!props || typeof props !== "object") return "";
+
+  // Prefer known *name* fields used in UK datasets
+  const candidates = [
+    props.name, props.NAME, props.NAME_1, props.NAME_2,
+    props.ctry17nm, props.ctry19nm, props.ctry20nm, props.country,
+    props.ctyua17nm, props.ctyua19nm, props.lad17nm, props.lad18nm,
+    props.area_name, props.layer, props.laua_name
+  ].filter(v => typeof v === "string" && v.trim());
+
+  if (candidates.length) return candidates[0];
+
+  // Map common code fields -> country name (for nations layer)
+  const code =
+    props.ctry17cd || props.ctry19cd || props.gss_code ||
+    props.ctyua17cd || props.lad17cd || props.lad18cd ||
+    props.code || props.id;
+
+  if (typeof code === "string" && UK_COUNTRY_CODE_MAP[code]) {
+    return UK_COUNTRY_CODE_MAP[code];
+  }
+
+  // If the only string looks like a GSS code (e.g., E92000001), return empty
+  // so the feature is filtered out rather than prompting with a code.
+  if (typeof code === "string" && /^[A-Z]{1,3}\d{5,}$/.test(code)) return "";
+
+  // As a last resort, pick the first string prop that's not code-like
+  for (const k in props) {
+    const v = props[k];
+    if (typeof v === "string" && v.trim() && !/^[A-Z]{1,3}\d{5,}$/.test(v)) {
+      return v;
+    }
+  }
+  return "";
+}
+
 /******************** Datasets ********************/
 const CTH = (slug) => `https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/${slug}.geojson`;
 
@@ -112,24 +157,16 @@ const DATASETS = {
   },
 uk_countries: {
   label: "UK – Countries",
-  url: "/data/topo_uk_level_1.json",
+  url: "/data/topo_uk_level_1.json", // you uploaded this to public/data/
   projection: { name: "geoEqualEarth", scale: 1300, center: [-2, 54] },
-  // use the 'ctry17nm' field for names
-  getName: (geo) =>
-    pickName(geo && geo.properties, [
-      "ctry17nm", "name", "NAME", "NAME_1"
-    ]),
+  getName: (geo) => pickNameUK(geo && geo.properties),
   exploreScope: { country: "United Kingdom" },
 },
 uk_counties: {
   label: "UK – Counties",
   url: "/data/topo_uk_level_2.json",
   projection: { name: "geoEqualEarth", scale: 1300, center: [-2, 54] },
-  // try county/district name fields in these files
-  getName: (geo) =>
-    pickName(geo && geo.properties, [
-      "ctyua17nm", "ctyua19nm", "lad17nm", "lad18nm", "name", "NAME", "NAME_2"
-    ]),
+  getName: (geo) => pickNameUK(geo && geo.properties),
   exploreScope: { country: "United Kingdom" },
 },
   australia: {
