@@ -43,6 +43,24 @@ function isRenderableFeature(f) {
   return false; // ignore non-polygons
 }
 
+// Utility: pick a readable name from varying UK property keys
+function pickName(
+  props: any,
+  keys: string[] = ["name", "NAME", "NAME_1", "NAME_2"]
+): string {
+  if (!props) return "";
+  for (const k of keys) {
+    const v = (props as any)[k];
+    if (typeof v === "string" && v.trim()) return v;
+  }
+  // Fallback: first non-empty string prop (handles e.g. ctyua17nm, lad18nm, etc.)
+  for (const k of Object.keys(props)) {
+    const v = (props as any)[k];
+    if (typeof v === "string" && v.trim()) return v;
+  }
+  return "";
+}
+
 /******************** Datasets ********************/
 const CTH = (slug) => `https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/${slug}.geojson`;
 
@@ -92,19 +110,24 @@ const DATASETS = {
     exploreScope: { country: "Israel" },
   },
   uk_countries: {
-    label: "UK - Countries",
-    url: "https://raw.githubusercontent.com/martinjc/UK-GeoJSON/master/json/administrative/uk/level_1/uk_level_1.geojson",
-    projection: { name: "geoEqualEarth", scale: 1300, center: [-2, 54] },
-    getName: (geo) => geo?.properties?.name || geo?.properties?.NAME_1 || geo?.properties?.NAME || "",
-    exploreScope: { country: "United Kingdom" },
-  },
-  uk_counties: {
-    label: "UK - Counties",
-    url: "https://raw.githubusercontent.com/martinjc/UK-GeoJSON/master/json/administrative/uk/level_2/uk_level_2.geojson",
-    projection: { name: "geoEqualEarth", scale: 1300, center: [-2, 54] },
-    getName: (geo) => geo?.properties?.name || geo?.properties?.NAME_2 || geo?.properties?.NAME || "",
-    exploreScope: { country: "United Kingdom" },
-  },
+  label: "UK – Countries",
+  // you uploaded this to public/data/, so it serves at /data/...
+  url: "/data/topo_uk_level_1.json",
+  projection: { name: "geoEqualEarth", scale: 1300, center: [-2, 54] },
+  getName: (geo) => pickName(geo?.properties, ["name", "NAME", "NAME_1"]),
+  exploreScope: { country: "United Kingdom" },
+},
+uk_counties: {
+  label: "UK – Counties",
+  url: "/data/topo_uk_level_2.json",
+  projection: { name: "geoEqualEarth", scale: 1300, center: [-2, 54] },
+  // try common keys + typical ONS fields seen in these files
+  getName: (geo) =>
+    pickName(geo?.properties, [
+      "name", "NAME", "NAME_2", "ctyua17nm", "ctyua19nm", "lad17nm", "lad18nm",
+    ]),
+  exploreScope: { country: "United Kingdom" },
+},
   australia: {
     label: "Australia - States & Territories",
     url: CTH("australia"),
