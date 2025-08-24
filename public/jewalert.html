@@ -1,1 +1,105 @@
-coming soon...
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Jew Alert!</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #fafafa;
+      color: #111;
+      text-align: center;
+      padding: 20px;
+    }
+    h1 {
+      color: #b91c1c;
+      font-size: 2em;
+    }
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+      max-width: 400px;
+      margin: 20px auto;
+    }
+    img {
+      width: 100%;
+      border-radius: 8px;
+      margin-bottom: 12px;
+    }
+    .guess-btn {
+      display: inline-block;
+      margin: 6px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      background: #f3f4f6;
+      cursor: pointer;
+    }
+    .guess-btn:hover {
+      background: #e5e7eb;
+    }
+    .result {
+      margin-top: 12px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>Jew Alert!</h1>
+  <p>You have 5 tries to guess which type of Jew it is.</p>
+
+  <div class="card">
+    <img id="jew-image" src="https://via.placeholder.com/400x250.png?text=Jew+Image" alt="Guess the Jew"/>
+    <div id="options"></div>
+    <div class="result" id="result"></div>
+    <p id="tries-left">Tries left: 5</p>
+  </div>
+
+  <script>
+    // Prototype dataset
+    const dataset = [
+      { type: "Secular", religiosity: 0, img: "https://via.placeholder.com/400x250/8b5cf6/fff.png?text=Secular+Jew" },
+      { type: "Traditional", religiosity: 25, img: "https://via.placeholder.com/400x250/3b82f6/fff.png?text=Traditional" },
+      { type: "Modern Orthodox", religiosity: 50, img: "https://via.placeholder.com/400x250/10b981/fff.png?text=Modern+Orthodox" },
+      { type: "Haredi", religiosity: 75, img: "https://via.placeholder.com/400x250/f59e0b/fff.png?text=Haredi" },
+      { type: "Hasidic", religiosity: 100, img: "https://via.placeholder.com/400x250/ef4444/fff.png?text=Hasidic" },
+    ];
+
+    let tries = 5;
+    const target = dataset[Math.floor(Math.random() * dataset.length)];
+    document.getElementById("jew-image").src = target.img;
+
+    // render buttons
+    const optionsDiv = document.getElementById("options");
+    dataset.forEach(d => {
+      const btn = document.createElement("button");
+      btn.textContent = d.type;
+      btn.className = "guess-btn";
+      btn.onclick = () => guess(d);
+      optionsDiv.appendChild(btn);
+    });
+
+    function guess(choice) {
+      if (tries <= 0) return;
+      tries--;
+      const diff = Math.abs(choice.religiosity - target.religiosity);
+      const score = Math.round(100 - diff);
+      let msg = "";
+      if (choice.type === target.type) {
+        msg = `✅ Correct! It was ${target.type}. Score: 100%`;
+        tries = 0;
+      } else {
+        msg = `❌ Not ${choice.type}. You are ${score}% close on the religiosity scale.`;
+      }
+      document.getElementById("result").textContent = msg;
+      document.getElementById("tries-left").textContent = "Tries left: " + tries;
+      if (tries === 0 && choice.type !== target.type) {
+        document.getElementById("result").textContent += ` Game Over! The answer was ${target.type}.`;
+      }
+    }
+  </script>
+</body>
+</html>
