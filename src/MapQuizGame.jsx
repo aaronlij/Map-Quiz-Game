@@ -112,19 +112,23 @@ const DATASETS = {
   },
 uk_countries: {
   label: "UK – Countries",
-  url: "/data/topo_uk_level_1.json", // you uploaded this under public/data/
+  url: "/data/topo_uk_level_1.json",
   projection: { name: "geoEqualEarth", scale: 1300, center: [-2, 54] },
-  getName: (geo) => pickName(geo && geo.properties, ["name", "NAME", "NAME_1"]),
+  // use the 'ctry17nm' field for names
+  getName: (geo) =>
+    pickName(geo && geo.properties, [
+      "ctry17nm", "name", "NAME", "NAME_1"
+    ]),
   exploreScope: { country: "United Kingdom" },
 },
 uk_counties: {
   label: "UK – Counties",
   url: "/data/topo_uk_level_2.json",
   projection: { name: "geoEqualEarth", scale: 1300, center: [-2, 54] },
-  // try common keys + typical ONS fields in these files
+  // try county/district name fields in these files
   getName: (geo) =>
     pickName(geo && geo.properties, [
-      "name", "NAME", "NAME_2", "ctyua17nm", "ctyua19nm", "lad17nm", "lad18nm",
+      "ctyua17nm", "ctyua19nm", "lad17nm", "lad18nm", "name", "NAME", "NAME_2"
     ]),
   exploreScope: { country: "United Kingdom" },
 },
