@@ -19,3 +19,10 @@ window.addEventListener("unhandledrejection", showRuntimeErrorOnPage);
 
 const root = createRoot(document.getElementById("root"));
 root.render(<App />);
+
+// Register PWA service worker (no-op on unsupported browsers)
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
+  });
+}
