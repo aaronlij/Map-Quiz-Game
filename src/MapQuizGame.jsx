@@ -221,11 +221,9 @@ export default function MapQuizGame() {
     setCenter(conf.projection.center);
     setZoom(1);
     setMessage("");
-    // Reset prompt; will regenerate post-load
     setPrompt(null);
   }, [dataset]);
 
-  // Regenerate prompt when features load or mode changes
   useEffect(() => {
     if ((mode === "click" || mode === "type") && namesRef.current.length) {
       const list = namesRef.current;
@@ -269,7 +267,6 @@ export default function MapQuizGame() {
     }
 
     if (mode === "type") {
-      // No solving by click; only guidance
       setMessage("A region is highlighted. Type its name to score.");
     }
   };
@@ -292,138 +289,147 @@ export default function MapQuizGame() {
     }
   };
 
-  // Zoom helpers
   const zoomIn = () => setZoom((z) => Math.min(8, z * 1.5));
   const zoomOut = () => setZoom((z) => Math.max(0.8, z / 1.5));
   const zoomReset = () => { setZoom(1); setCenter(conf.projection.center); };
 
-  // Highlight name for typing mode
   const highlightName = mode === "type" ? prompt : null;
 
-  // Geography styles (respect Hard Mode in Click)
   const baseFill = "#E5E7EB";
   const strokeColor = hideBorders ? "transparent" : "#6B7280";
   const strokeWidth = hideBorders ? 0 : 0.5;
   const hoverFill = disableHighlights && mode === "click" ? baseFill : "#F59E0B";
   const pressedFill = disableHighlights && mode === "click" ? baseFill : "#FDE68A";
 
+  // lightweight CSS for layout (no Tailwind needed)
+  const css = `
+    .mqg-root{min-height:100vh;box-sizing:border-box;background:#fff;color:#111;padding:16px}
+    .mqg-container{max-width:1200px;margin:0 auto}
+    .mqg-header{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between;margin-bottom:12px}
+    .mqg-title{font-size:28px;font-weight:700;margin:0}
+    .mqg-sub{opacity:.8;font-size:14px}
+    .mqg-selects{display:flex;gap:8px;flex-wrap:wrap}
+    .mqg-btn, .mqg-select, .mqg-input{border:1px solid #d1d5db;border-radius:10px;padding:8px 12px;background:#fff}
+    .mqg-btn{cursor:pointer}
+    .mqg-grid{display:grid;grid-template-columns:1fr;gap:16px}
+    @media(min-width:900px){.mqg-grid{grid-template-columns:1fr 360px}}
+    .mqg-card{border:1px solid #e5e7eb;border-radius:12px;background:#fafafa}
+    .mqg-pad{padding:12px}
+    .mqg-stat{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
+    .mqg-stat .box{border:1px solid #e5e7eb;border-radius:10px;padding:10px;background:#fff}
+    .mqg-zoom{display:flex;gap:8px}
+    .mqg-message{border:1px solid #e5e7eb;border-radius:10px;padding:10px;background:#fff;font-size:14px}
+    .mqg-label{font-size:11px;letter-spacing:.04em;opacity:.7;text-transform:uppercase}
+    .mqg-strong{font-weight:600}
+    .mqg-flex-row{display:flex;gap:12px;align-items:center}
+    .mqg-modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:50}
+    .mqg-img{max-height:90vh;max-width:90vw}
+  `;
+
   return (
-    <div className="min-h-screen w-full p-4 text-[#111] bg-white">
-      <div className="max-w-7xl mx-auto">
-        <header className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between mb-3">
+    <div className="mqg-root">
+      <style>{css}</style>
+      <div className="mqg-container">
+        <header className="mqg-header">
           <div>
-            <h1 className="text-3xl font-bold">Map Quiz Game</h1>
-            <p className="text-sm opacity-80">Datasets: World • US • Canada • Mexico • India • Israel • Modes: Explore, Click, Type</p>
+            <h1 className="mqg-title">Map Quiz Game</h1>
+            <p className="mqg-sub">Datasets: World • US • Canada • Mexico • India • Israel • Modes: Explore, Click, Type</p>
           </div>
-          <div className="flex flex-wrap gap-2 items-center">
-            <select className="border rounded px-3 py-2" value={dataset} onChange={(e) => setDataset(e.target.value)} aria-label="Dataset">
-              {Object.entries(DATASETS).map(([key, val]) => (
-                <option key={key} value={key}>{val.label}</option>
-              ))}
+          <div className="mqg-selects">
+            <select className="mqg-select" value={dataset} onChange={(e)=>setDataset(e.target.value)} aria-label="Dataset">
+              {Object.entries(DATASETS).map(([key,val])=> (<option key={key} value={key}>{val.label}</option>))}
             </select>
-            <select className="border rounded px-3 py-2" value={mode} onChange={(e) => { setMode(e.target.value); setMessage(""); setInput(""); }} aria-label="Mode">
-              {Object.entries(MODES).map(([key, label]) => (<option key={key} value={key}>{label}</option>))}
+            <select className="mqg-select" value={mode} onChange={(e)=>{setMode(e.target.value);setMessage("");setInput("");}} aria-label="Mode">
+              {Object.entries(MODES).map(([key,label])=> (<option key={key} value={key}>{label}</option>))}
             </select>
-            <button className="border rounded px-3 py-2" onClick={() => { setScore(0); setStreak(0); setLives(3); setMessage(""); setInput(""); }}>Reset</button>
+            <button className="mqg-btn" onClick={()=>{setScore(0);setStreak(0);setLives(3);setMessage("");setInput("");}}>Reset</button>
           </div>
         </header>
 
-        <section className="grid md:grid-cols-[1fr_360px] gap-4 items-start">
-          <div className="w-full rounded border overflow-hidden">
-            <ComposableMap projection={conf.projection.name} projectionConfig={{ scale: conf.projection.scale }}>
-              <ZoomableGroup zoom={zoom} center={conf.projection.center} minZoom={0.8} maxZoom={8}>
-                <Geographies geography={conf.url}>
-                  {({ geographies }) => {
-                    const raw = safeList(geographies);
-                    const list = raw.filter((g) => isRenderableFeature(g) && conf.getName(g));
-                    namesRef.current = list.map((g) => conf.getName(g));
-                    if (lastLenRef.current !== list.length) { lastLenRef.current = list.length; setTimeout(() => setGeoVersion((v) => v + 1), 0); }
-
-                    return list.map((geo, idx) => {
-                      const name = conf.getName(geo);
-                      const isHL = !!highlightName && norm(name) === norm(highlightName);
-                      const key = geo.rsmKey || name || idx;
-                      return (
-                        <Geography
-                          key={key}
-                          geography={geo}
-                          onClick={() => onGeoClick(geo)}
-                          style={{
-                            default: { fill: isHL ? "#A7F3D0" : baseFill, stroke: strokeColor, strokeWidth, outline: "none" },
-                            hover: { fill: isHL ? "#86EFAC" : hoverFill, outline: "none" },
-                            pressed: { fill: isHL ? "#86EFAC" : pressedFill, outline: "none" },
-                          }}
-                        />
-                      );
-                    });
-                  }}
-                </Geographies>
-              </ZoomableGroup>
-            </ComposableMap>
+        <section className="mqg-grid">
+          <div className="mqg-card">
+            <div className="mqg-pad">
+              <ComposableMap projection={conf.projection.name} projectionConfig={{ scale: conf.projection.scale }}>
+                <ZoomableGroup zoom={zoom} center={conf.projection.center} minZoom={0.8} maxZoom={8}>
+                  <Geographies geography={conf.url}>
+                    {({ geographies }) => {
+                      const raw = safeList(geographies);
+                      const list = raw.filter((g)=> isRenderableFeature(g) && conf.getName(g));
+                      namesRef.current = list.map((g)=> conf.getName(g));
+                      if (lastLenRef.current !== list.length) { lastLenRef.current = list.length; setTimeout(()=> setGeoVersion(v=>v+1),0); }
+                      return list.map((geo,idx)=>{
+                        const name = conf.getName(geo);
+                        const isHL = !!highlightName && norm(name) === norm(highlightName);
+                        const key = geo.rsmKey || name || idx;
+                        return (
+                          <Geography key={key} geography={geo} onClick={()=> onGeoClick(geo)}
+                            style={{
+                              default:{ fill: isHL?"#A7F3D0":baseFill, stroke: strokeColor, strokeWidth, outline:"none"},
+                              hover:{ fill: isHL?"#86EFAC":hoverFill, outline:"none"},
+                              pressed:{ fill: isHL?"#86EFAC":pressedFill, outline:"none"}
+                            }}
+                          />
+                        );
+                      });
+                    }}
+                  </Geographies>
+                </ZoomableGroup>
+              </ComposableMap>
+            </div>
           </div>
 
-          <aside className="rounded border p-3 space-y-3 bg-[#fafafa]">
-            <div className="grid grid-cols-3 gap-2 text-center">
-              <div className="rounded border p-2"><div className="text-xs uppercase opacity-70">Score</div><div className="text-2xl font-bold">{score}</div></div>
-              <div className="rounded border p-2"><div className="text-xs uppercase opacity-70">Streak</div><div className="text-2xl font-bold">{streak}</div></div>
-              <div className="rounded border p-2"><div className="text-xs uppercase opacity-70">Lives</div><div className="text-2xl font-bold">{lives}</div></div>
+          <aside className="mqg-card mqg-pad" style={{display:'flex',flexDirection:'column',gap:12}}>
+            <div className="mqg-stat">
+              <div className="box"><div className="mqg-label">Score</div><div className="mqg-strong" style={{fontSize:22}}>{score}</div></div>
+              <div className="box"><div className="mqg-label">Streak</div><div className="mqg-strong" style={{fontSize:22}}>{streak}</div></div>
+              <div className="box"><div className="mqg-label">Lives</div><div className="mqg-strong" style={{fontSize:22}}>{lives}</div></div>
             </div>
 
-            <div className="flex gap-2">
-              <button className="border rounded px-3 py-2" onClick={() => setZoom((z) => Math.max(0.8, z / 1.5))}>−</button>
-              <button className="border rounded px-3 py-2" onClick={() => setZoom((z) => Math.min(8, z * 1.5))}>＋</button>
-              <button className="border rounded px-3 py-2" onClick={() => { setZoom(1); setCenter(conf.projection.center); }}>Reset View</button>
+            <div className="mqg-zoom">
+              <button className="mqg-btn" onClick={()=> setZoom(z=> Math.max(0.8, z/1.5))}>−</button>
+              <button className="mqg-btn" onClick={()=> setZoom(z=> Math.min(8, z*1.5))}>＋</button>
+              <button className="mqg-btn" onClick={()=> { setZoom(1); setCenter(conf.projection.center); }}>Reset View</button>
             </div>
 
             {mode === "click" && (
-              <div className="rounded bg-white border p-2 space-y-2">
-                <div className="text-sm">Click this region:</div>
-                {/* Do NOT reveal the answer in typing mode; here we are in click mode so showing is OK */}
-                <div className="font-semibold">{prompt || "Loading..."}</div>
-                <div className="flex items-center gap-3 pt-1 border-t mt-1">
-                  <label className="flex items-center gap-1 text-xs"><input type="checkbox" checked={hideBorders} onChange={(e) => setHideBorders(e.target.checked)} /> Hide borders</label>
-                  <label className="flex items-center gap-1 text-xs"><input type="checkbox" checked={disableHighlights} onChange={(e) => setDisableHighlights(e.target.checked)} /> Disable highlights</label>
+              <div className="mqg-card mqg-pad" style={{background:'#fff'}}>
+                <div className="mqg-label">Click this region</div>
+                <div className="mqg-strong">{prompt || "Loading..."}</div>
+                <div className="mqg-flex-row" style={{marginTop:8,paddingTop:8,borderTop:'1px solid #eee'}}>
+                  <label className="mqg-flex-row" style={{fontSize:12}}><input type="checkbox" checked={hideBorders} onChange={(e)=> setHideBorders(e.target.checked)} /> Hide borders</label>
+                  <label className="mqg-flex-row" style={{fontSize:12}}><input type="checkbox" checked={disableHighlights} onChange={(e)=> setDisableHighlights(e.target.checked)} /> Disable highlights</label>
                 </div>
               </div>
             )}
 
             {mode === "type" && (
-              <form onSubmit={submitTyped} className="rounded bg-white border p-2 space-y-2">
-                <div className="text-xs uppercase opacity-70">Type the highlighted region</div>
-                {/* DO NOT reveal the target name here */}
-                <input value={input} onChange={(e) => setInput(e.target.value)} className="w-full border rounded px-3 py-2" placeholder="Start typing the name... (aliases OK)" aria-label="Type region name" />
-                <button type="submit" className="border rounded px-3 py-2">Submit</button>
+              <form onSubmit={submitTyped} className="mqg-card mqg-pad" style={{background:'#fff',display:'flex',flexDirection:'column',gap:8}}>
+                <div className="mqg-label">Type the highlighted region</div>
+                <input className="mqg-input" value={input} onChange={(e)=> setInput(e.target.value)} placeholder="Start typing the name... (aliases OK)" aria-label="Type region name" />
+                <button type="submit" className="mqg-btn">Submit</button>
               </form>
             )}
 
-            {message && <div className="rounded border p-2 bg-white text-sm">{message}</div>}
+            {message && <div className="mqg-message">{message}</div>}
 
             {mode === "explore" && selectedName && (
-              <div className="rounded bg-white border p-2">
-                <div className="text-lg font-bold mb-1">{selectedName}</div>
+              <div className="mqg-card mqg-pad" style={{background:'#fff'}}>
+                <div className="mqg-strong" style={{fontSize:18,marginBottom:6}}>{selectedName}</div>
                 {info ? (
-                  <div className="space-y-2">
-                    {info.flag && (
-                      <img src={info.flag} alt="flag" className="h-10 cursor-zoom-in" onClick={() => setModalImg(info.flag)} />
-                    )}
-                    {info.coat && (
-                      <img src={info.coat} alt="coat of arms" className="h-10 cursor-zoom-in" onClick={() => setModalImg(info.coat)} />
-                    )}
-                    {info.image && !info.flag && (
-                      <img src={info.image} alt="image" className="h-24 object-contain cursor-zoom-in" onClick={() => setModalImg(info.image)} />
-                    )}
+                  <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                    {info.flag && <img src={info.flag} alt="flag" style={{height:40,cursor:'zoom-in'}} onClick={()=> setModalImg(info.flag)} />}
+                    {info.coat && <img src={info.coat} alt="coat" style={{height:40,cursor:'zoom-in'}} onClick={()=> setModalImg(info.coat)} />}
+                    {info.image && !info.flag && <img src={info.image} alt="image" style={{height:96,objectFit:'contain',cursor:'zoom-in'}} onClick={()=> setModalImg(info.image)} />}
                     {info.official && <div><strong>Official:</strong> {info.official}</div>}
                     {info.capital && <div><strong>Capital:</strong> {info.capital}</div>}
                     {info.population && <div><strong>Population:</strong> {info.population?.toLocaleString?.()}</div>}
                     {info.area && <div><strong>Area:</strong> {info.area?.toLocaleString?.()} km²</div>}
-                    {info.region && <div><strong>Region:</strong> {info.region}{info.subregion ? ` • ${info.subregion}` : ""}</div>}
-                    {info.summary && <p className="text-sm opacity-80 leading-snug">{info.summary}</p>}
-                    {info.sourceUrl && (
-                      <a className="text-xs text-blue-600 underline" href={info.sourceUrl} target="_blank" rel="noreferrer">Wikipedia</a>
-                    )}
+                    {(info.region || info.subregion) && <div><strong>Region:</strong> {info.region}{info.subregion?` • ${info.subregion}`:""}</div>}
+                    {info.summary && <p style={{fontSize:13,opacity:.85,lineHeight:1.25}}>{info.summary}</p>}
+                    {info.sourceUrl && <a href={info.sourceUrl} target="_blank" rel="noreferrer" style={{fontSize:12,color:'#2563eb',textDecoration:'underline'}}>Wikipedia</a>}
                   </div>
                 ) : (
-                  <div className="text-sm opacity-70">Loading details…</div>
+                  <div style={{fontSize:14,opacity:.7}}>Loading details…</div>
                 )}
               </div>
             )}
@@ -431,14 +437,12 @@ export default function MapQuizGame() {
         </section>
       </div>
 
-      {/* Image Modal */}
       {modalImg && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50" onClick={() => setModalImg(null)}>
-          <img src={modalImg} alt="zoom" className="max-h-[90vh] max-w-[90vw]" />
+        <div className="mqg-modal" onClick={()=> setModalImg(null)}>
+          <img src={modalImg} alt="zoom" className="mqg-img" />
         </div>
       )}
 
-      {/* DEV TESTS – keep existing, add guard tests */}
       {typeof window !== "undefined" && (
         <script
           dangerouslySetInnerHTML={{
@@ -446,7 +450,6 @@ export default function MapQuizGame() {
               try { if (!window.__MAP_QUIZ_TESTED__) {
                 window.__MAP_QUIZ_TESTED__ = true;
                 function assert(name, cond){ console[cond ? 'log' : 'error']('Test ' + (cond ? 'passed' : 'failed') + ':', name); }
-                // Existing tests – unchanged
                 const normFn = ${norm.toString()};
                 assert('norm(Québec) -> quebec', normFn('Québec') === 'quebec');
                 const matchFn = ${matchesAnswer.toString()};
@@ -456,7 +459,6 @@ export default function MapQuizGame() {
                 const safeListFn = ${safeList.toString()};
                 assert('safeList(null) -> []', Array.isArray(safeListFn(null)) && safeListFn(null).length === 0);
                 assert('safeList(undefined) -> []', Array.isArray(safeListFn(undefined)) && safeListFn(undefined).length === 0);
-                // New tests – geometry guards
                 const isRenderable = ${isRenderableFeature.toString()};
                 const nullGeom = { geometry: null };
                 const emptyPoly = { geometry: { type: 'Polygon', coordinates: [] } };
