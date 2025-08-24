@@ -1,0 +1,19 @@
+{
+  "name": "map-quiz-game",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --port 4173"
+  },
+  "dependencies": {
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "react-simple-maps": "3.0.0"
+  },
+  "devDependencies": {
+    "vite": "5.4.2"
+  }
+}
