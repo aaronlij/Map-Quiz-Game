@@ -419,26 +419,43 @@ export default function MapQuizGame() {
     }
 
     if (mode === "click") {
-      if (!prompt) return;
-      if (norm(name) === norm(prompt)) {
-        setScore((s) => { const val = s + 1; bumpHighScore(val); return val; });
-        setStreak((s) => s + 1);
-        setMessage("Correct!");
-        const list = namesRef.current;
-        if (list.length) setPrompt(list[Math.floor(Math.random() * list.length)]);
-        setTimeLeft(duration);
+    if (!prompt) return;
+
+    // correct click
+    if (norm(name) === norm(prompt)) {
+      setScore((s) => { const val = s + 1; bumpHighScore(val); return val; });
+      setStreak((s) => s + 1);
+      setMessage("Correct!");
+      const list = namesRef.current;
+      if (list.length) setPrompt(list[Math.floor(Math.random() * list.length)]);
+      setTimeLeft(duration);
+    } else {
+      // wrong click -> lose a life, reset streak, show what they clicked,
+      // and choose a new prompt (preferably not the same as the old prompt or the clicked region)
+      setStreak(0);
+      setLives((l) => {
+        const next = Math.max(0, l - 1);
+        if (next === 0) setGameOver(true);
+        return next;
+      });
+      setMessage(`That was ${name}.`);
+
+      // build candidate list excluding the previous prompt and the clicked name
+      const all = namesRef.current || [];
+      const candidates = all.filter((n) => norm(n) !== norm(prompt) && norm(n) !== norm(name));
+
+      if (candidates.length) {
+        setPrompt(candidates[Math.floor(Math.random() * candidates.length)]);
       } else {
-        setStreak(0);
-        setLives((l) => {
-          const next = Math.max(0, l - 1);
-          if (next === 0) setGameOver(true);
-          return next;
-        });
-        setMessage(`That was ${name}.`);
-        setTimeLeft(duration);
+        // fallback: pick anything except the old prompt
+        const fallback = all.filter((n) => norm(n) !== norm(prompt));
+        setPrompt(fallback.length ? fallback[Math.floor(Math.random() * fallback.length)] : null);
       }
-      return;
+
+      setTimeLeft(duration);
     }
+    return;
+  }
 
     if (mode === "type") {
       setMessage("A region is highlighted. Type its name to score.");
