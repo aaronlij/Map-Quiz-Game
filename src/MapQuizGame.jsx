@@ -18,7 +18,6 @@ import { ComposableMap, Geographies, Geography, ZoomableGroup } from "react-simp
  */
 
 /******************** Utils ********************/
-const [usedPrompts, setUsedPrompts] = useState([]);
 const safeList = (v) => (Array.isArray(v) ? v : []);
 const isNum = (x) => typeof x === "number" && isFinite(x);
 const norm = (s) =>
@@ -380,38 +379,28 @@ export default function MapQuizGame() {
   }, [timerOn, duration, mode, gameOver]);
 
   // Reset on dataset change
- useEffect(() => {
-  setZoom(1);
-  setMessage("");
-  setPrompt(null);
-  setSelectedName(null);
-  setInfo(null);
-  setLives(5);
-  setGameOver(false);
-  setUsedPrompts([]);
-}, [dataset]);
+  useEffect(() => {
+    setZoom(1);
+    setMessage("");
+    setPrompt(null);
+    setSelectedName(null);
+    setInfo(null);
+    setLives(5);
+    setGameOver(false);
+  }, [dataset]);
 
   // Regenerate prompt when features load or mode changes
-useEffect(() => {
-  if ((mode === "click" || mode === "type") && namesRef.current.length) {
-    // Filter out regions already used in this game
-    const available = namesRef.current.filter(n => !usedPrompts.includes(norm(n)));
-    if (available.length) {
-      const pick = available[Math.floor(Math.random() * available.length)];
-      setPrompt(pick || null);
-      setUsedPrompts(prev => [...prev, norm(pick)]);
-    } else {
-      setPrompt(null); // No more unused regions; end game
-      setGameOver(true);
+  useEffect(() => {
+    if ((mode === "click" || mode === "type") && namesRef.current.length) {
+      const list = namesRef.current;
+      setPrompt(list[Math.floor(Math.random() * list.length)] || null);
+      setInput("");
+      setMessage("");
+      setTimeLeft(duration);
+    } else if (mode !== "explore") {
+      setPrompt(null);
     }
-    setInput("");
-    setMessage("");
-    setTimeLeft(duration);
-  } else if (mode !== "explore") {
-    setPrompt(null);
-  }
-}, [geoVersion, mode, dataset]);
-
+  }, [geoVersion, mode, dataset]);
 
   const onGeoClick = (geo) => {
     if (gameOver) return;
@@ -438,17 +427,7 @@ useEffect(() => {
       setStreak((s) => s + 1);
       setMessage("Correct!");
       const list = namesRef.current;
-      if (list.length) {
-  const available = list.filter(n => !usedPrompts.includes(norm(n)));
-  if (available.length) {
-    const pick = available[Math.floor(Math.random() * available.length)];
-    setPrompt(pick || null);
-    setUsedPrompts(prev => [...prev, norm(pick)]);
-  } else {
-    setPrompt(null); // No more unused regions
-    setGameOver(true);
-  }
-}
+      if (list.length) setPrompt(list[Math.floor(Math.random() * list.length)]);
       setTimeLeft(duration);
     } else {
       // wrong click -> lose a life, reset streak, show what they clicked,
@@ -463,24 +442,16 @@ useEffect(() => {
 
       // build candidate list excluding the previous prompt and the clicked name
       const all = namesRef.current || [];
-const candidates = all.filter((n) => norm(n) !== norm(prompt) && norm(n) !== norm(name) && !usedPrompts.includes(norm(n)));
+      const candidates = all.filter((n) => norm(n) !== norm(prompt) && norm(n) !== norm(name));
 
-if (candidates.length) {
-  const pick = candidates[Math.floor(Math.random() * candidates.length)];
-  setPrompt(pick || null);
-  setUsedPrompts(prev => [...prev, norm(pick)]);
-} else {
-  // fallback: pick anything not already used
-  const fallback = all.filter((n) => !usedPrompts.includes(norm(n)));
-  if (fallback.length) {
-    const pick = fallback[Math.floor(Math.random() * fallback.length)];
-    setPrompt(pick || null);
-    setUsedPrompts(prev => [...prev, norm(pick)]);
-  } else {
-    setPrompt(null);
-    setGameOver(true);
-  }
-}
+      if (candidates.length) {
+        setPrompt(candidates[Math.floor(Math.random() * candidates.length)]);
+      } else {
+        // fallback: pick anything except the old prompt
+        const fallback = all.filter((n) => norm(n) !== norm(prompt));
+        setPrompt(fallback.length ? fallback[Math.floor(Math.random() * fallback.length)] : null);
+      }
+
       setTimeLeft(duration);
     }
     return;
@@ -500,17 +471,7 @@ if (candidates.length) {
       setMessage("Correct!");
       setInput("");
       const list = namesRef.current;
-      if (list.length) {
-  const available = list.filter(n => !usedPrompts.includes(norm(n)));
-  if (available.length) {
-    const pick = available[Math.floor(Math.random() * available.length)];
-    setPrompt(pick || null);
-    setUsedPrompts(prev => [...prev, norm(pick)]);
-  } else {
-    setPrompt(null); // No more unused regions
-    setGameOver(true);
-  }
-}
+      if (list.length) setPrompt(list[Math.floor(Math.random() * list.length)]);
       setTimeLeft(duration);
     } else {
       setStreak(0);
@@ -525,10 +486,9 @@ if (candidates.length) {
     }
   };
 
-const resetAll = () => {
-  setScore(0); setStreak(0); setLives(5); setMessage(""); setInput(""); setPrompt(null); setGameOver(false); setSelectedName(null); setInfo(null); setTimeLeft(duration);
-  setUsedPrompts([]);
-};
+  const resetAll = () => {
+    setScore(0); setStreak(0); setLives(5); setMessage(""); setInput(""); setPrompt(null); setGameOver(false); setSelectedName(null); setInfo(null); setTimeLeft(duration);
+  };
 
   const highlightName = mode === "type" ? prompt : null;
 
