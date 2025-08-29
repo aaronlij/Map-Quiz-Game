@@ -328,6 +328,21 @@ const ZOOM_STEP = 1.8;  // was 1.5
   const [theme, setTheme] = useState(() => (typeof localStorage !== "undefined" && localStorage.getItem("mqg_theme")) || "light");
   useEffect(() => { try { localStorage.setItem("mqg_theme", theme); } catch {} }, [theme]);
 
+  // Keep the OS bars in sync with the in-app theme (iOS & Android)
+useEffect(() => {
+  const dark = theme === "dark";
+  const barColor = dark ? "#0b0f14" : "#ffffff";
+
+  // Update all theme-color meta tags (Android Chrome, iOS 15+)
+  const tcMetas = document.querySelectorAll('meta[name="theme-color"]');
+  tcMetas.forEach((m) => m.setAttribute("content", barColor));
+
+  // Update iOS standalone status bar style (older iOS uses this)
+  const appleBar = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
+  if (appleBar) appleBar.setAttribute("content", dark ? "black" : "default");
+}, [theme]);
+
+
   // UI state
   const [dataset, setDataset] = useState("world");
   const [mode, setMode] = useState("click"); // explore | click | type
