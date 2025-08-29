@@ -590,7 +590,7 @@ const pressedFill = isHard ? baseFill : "var(--pressed)";
 .mqg-map-container {
   flex: 1;
   width: 100%;
-  height: 100%;
+  height: calc(100vh - 120px);
 }
 .mqg-map-container svg {
   width: 100%;
