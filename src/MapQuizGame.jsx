@@ -319,6 +319,7 @@ function MergedGeographies({ urls, children }) {
 
 /******************** Component ********************/
 export default function MapQuizGame() {
+  
   // Zoom settings
 const MIN_ZOOM = 0.5;   // was 0.8
 const MAX_ZOOM = 24;    // was 8
@@ -342,6 +343,15 @@ const ZOOM_STEP = 1.8;  // was 1.5
   const [lives, setLives] = useState(5);
   const [message, setMessage] = useState("");
   const [gameOver, setGameOver] = useState(false);
+
+  // Visual feedback for Click mode card: 'correct' | 'wrong' | null
+const [flash, setFlash] = useState(null);
+const flashTimerRef = useRef(null);
+const triggerFlash = (kind) => {
+  if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+  setFlash(kind);
+  flashTimerRef.current = setTimeout(() => setFlash(null), 600);
+};
 
   // High score per dataset+mode
   const hsKey = (d=dataset,m=mode) => `mqg_hs_v1_${d}_${m}`;
@@ -442,6 +452,7 @@ const ZOOM_STEP = 1.8;  // was 1.5
       setScore((s) => { const val = s + 1; bumpHighScore(val); return val; });
       setStreak((s) => s + 1);
       setMessage("Correct!");
+      triggerFlash('correct');
       const list = namesRef.current;
       if (list.length) setPrompt(list[Math.floor(Math.random() * list.length)]);
       setTimeLeft(duration);
@@ -455,6 +466,8 @@ const ZOOM_STEP = 1.8;  // was 1.5
         return next;
       });
       setMessage(`That was ${name}.`);
+      triggerFlash('wrong');
+
 
       // build candidate list excluding the previous prompt and the clicked name
       const all = namesRef.current || [];
@@ -578,6 +591,20 @@ const pressedFill = isHard ? baseFill : "var(--pressed)";
   object-fit: contain;
   display: block;
   margin: 8px auto;      /* center smaller emblem */
+}
+/* flash feedback on the Click prompt card */
+.mqg-flash {
+  transition: background-color .25s ease, box-shadow .25s ease, border-color .25s ease;
+}
+.mqg-flash.mqg-correct {
+  background: rgba(16,185,129,.10);           /* emerald-500 @10% */
+  border-color: rgba(16,185,129,.8);
+  box-shadow: 0 0 0 3px rgba(16,185,129,.35);
+}
+.mqg-flash.mqg-wrong {
+  background: rgba(239,68,68,.10);            /* red-500 @10% */
+  border-color: rgba(239,68,68,.8);
+  box-shadow: 0 0 0 3px rgba(239,68,68,.35);
 }
   `;
 
@@ -759,7 +786,13 @@ const pressedFill = isHard ? baseFill : "var(--pressed)";
     )}
 
     {mode === "click" && (
-      <div className="mqg-card mqg-pad" style={{ background: "var(--bg)" }}>
+      <div
+  className={
+    "mqg-card mqg-pad mqg-flash " +
+    (flash === "correct" ? "mqg-correct" : flash === "wrong" ? "mqg-wrong" : "")
+  }
+  style={{ background: "var(--bg)" }}
+>
         <div className="mqg-label">Click this region</div>
         <div
   className="mqg-strong"
