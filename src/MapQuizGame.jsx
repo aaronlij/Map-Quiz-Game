@@ -319,6 +319,10 @@ function MergedGeographies({ urls, children }) {
 
 /******************** Component ********************/
 export default function MapQuizGame() {
+  // Zoom settings
+const MIN_ZOOM = 0.5;   // was 0.8
+const MAX_ZOOM = 24;    // was 8
+const ZOOM_STEP = 1.8;  // was 1.5
   // THEME
   const [theme, setTheme] = useState(() => (typeof localStorage !== "undefined" && localStorage.getItem("mqg_theme")) || "light");
   useEffect(() => { try { localStorage.setItem("mqg_theme", theme); } catch {} }, [theme]);
@@ -601,7 +605,12 @@ const pressedFill = isHard ? baseFill : "var(--pressed)";
           <div className="mqg-card">
             <div className="mqg-pad">
               <ComposableMap projection={conf.projection.name} projectionConfig={{ scale: conf.projection.scale }}>
-                <ZoomableGroup zoom={zoom} center={conf.projection.center} minZoom={0.8} maxZoom={8}>
+               <ZoomableGroup
+  zoom={zoom}
+  center={conf.projection.center}
+  minZoom={MIN_ZOOM}
+  maxZoom={MAX_ZOOM}
+/>
                   <GeoLayer>
                     {({ geographies }) => {
                       const raw = safeList(geographies);
@@ -657,9 +666,9 @@ const pressedFill = isHard ? baseFill : "var(--pressed)";
             </div>
 
             <div className="mqg-zoom">
-              <button className="mqg-btn" onClick={()=> setZoom(z=> Math.max(0.8, z/1.5))}>-</button>
-              <button className="mqg-btn" onClick={()=> setZoom(z=> Math.min(8, z*1.5))}>+</button>
-              <button className="mqg-btn" onClick={()=> setZoom(1)}>Reset View</button>
+              <button className="mqg-btn" onClick={() => setZoom(z => Math.max(MIN_ZOOM, z / ZOOM_STEP))}>-</button>
+<button className="mqg-btn" onClick={() => setZoom(z => Math.min(MAX_ZOOM, z * ZOOM_STEP))}>+</button>
+<button className="mqg-btn" onClick={() => setZoom(1)}>Reset View</button>
             </div>
 
             {(mode === "click" || mode === "type") && (
