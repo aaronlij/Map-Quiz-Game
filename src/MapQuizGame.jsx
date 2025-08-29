@@ -693,7 +693,7 @@ html, body { background: var(--bg); margin: 0;
         </header>
 
         <section className="mqg-grid">
-          <div className="mqg-card">
+          
    <div className="mqg-card map-card">
   <div className="mqg-map-container">
     <ComposableMap
