@@ -572,30 +572,45 @@ const pressedFill = isHard ? baseFill : "var(--pressed)";
     .mqg-title{font-size:28px;font-weight:700;margin:0}
     .mqg-selects{display:flex;gap:8px;flex-wrap:wrap}
     .mqg-btn,.mqg-select,.mqg-input{border:1px solid var(--border);border-radius:10px;padding:8px 12px;background:var(--card);color:var(--text)}
-    .mqg-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 16px;
+
+    /* Stage = area below header that the map fills */
+.mqg-stage{
+  position: relative;
+  min-height: calc(100vh - 88px); /* header + top padding approx */
 }
-@media(min-width:900px){
-  .mqg-grid { grid-template-columns: 2fr 360px; }  /* map gets more space */
+
+/* Map fills the entire stage, behind everything */
+.mqg-map{
+  position: absolute;
+  inset: 0;
+  z-index: 0;
 }
-.mqg-card.map-card {
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--card);
-  display: flex;
-  flex-direction: column;
-}
-.mqg-map-container {
-  flex: 1;
-  width: 100%;
-  height: calc(100vh - 120px);
-}
-.mqg-map-container svg {
+.mqg-map svg{
   width: 100%;
   height: 100%;
 }
+
+/* Floating HUD panel on top of the map */
+.mqg-hud{
+  position: absolute;
+  top: clamp(64px, 8vh, 120px);         /* slide down from top a bit */
+  right: clamp(8px, 3vw, 32px);
+  width: min(420px, 42vw);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 2;
+}
+
+/* Glassy cards over the map */
+.mqg-hud .mqg-card{
+  background: color-mix(in oklab, var(--card) 70%, transparent);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(6px);
+}
+
+/* Make header breathe a bit since there’s no grid now */
+.mqg-header{ margin-bottom: 8px; }
 
     .mqg-stat{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
     .mqg-stat .box{border:1px solid var(--border);border-radius:10px;padding:10px;background:var(--bg)}
@@ -692,291 +707,244 @@ html, body { background: var(--bg); margin: 0;
           </div>
         </header>
 
-        <section className="mqg-grid">
-          
-   <div className="mqg-card map-card">
-  <div className="mqg-map-container">
+        <div className="mqg-stage">
+
+  {/* MAP AS BACKGROUND */}
+  <div className="mqg-map">
     <ComposableMap
       projection={conf.projection.name}
       projectionConfig={{ scale: conf.projection.scale }}
     >
-        <ZoomableGroup
-          zoom={zoom}
-          center={conf.projection.center}
-          minZoom={typeof MIN_ZOOM !== "undefined" ? MIN_ZOOM : 0.8}
-          maxZoom={typeof MAX_ZOOM !== "undefined" ? MAX_ZOOM : 8}
-        >
-          <GeoLayer>
-            {({ geographies }) => {
-              const raw = safeList(geographies);
-              const list = raw.filter((g) => {
-                if (!isRenderableFeature(g)) return false;
-                const nm = conf.getName(g);
-                if (!nm) return false;
-                if (typeof conf.filter === "function" && !conf.filter(nm)) return false;
-                return true;
-              });
+      <ZoomableGroup
+        zoom={zoom}
+        center={conf.projection.center}
+        minZoom={typeof MIN_ZOOM !== "undefined" ? MIN_ZOOM : 0.8}
+        maxZoom={typeof MAX_ZOOM !== "undefined" ? MAX_ZOOM : 8}
+      >
+        <GeoLayer>
+          {({ geographies }) => {
+            const raw = safeList(geographies);
+            const list = raw.filter((g) => {
+              if (!isRenderableFeature(g)) return false;
+              const nm = conf.getName(g);
+              if (!nm) return false;
+              if (typeof conf.filter === "function" && !conf.filter(nm)) return false;
+              return true;
+            });
 
-              namesRef.current = list.map((g) => conf.getName(g));
+            namesRef.current = list.map((g) => conf.getName(g));
 
-              if (lastLenRef.current !== list.length) {
-                lastLenRef.current = list.length;
-                setTimeout(() => setGeoVersion((v) => v + 1), 0);
-              }
+            if (lastLenRef.current !== list.length) {
+              lastLenRef.current = list.length;
+              setTimeout(() => setGeoVersion((v) => v + 1), 0);
+            }
 
-              if (list.length === 0) {
-                return (
-                  <g>
-                    <text x={0} y={20} style={{ fill: "currentColor", fontSize: 12 }}>
-                      No regions loaded for this dataset. Try another dataset or source.
-                    </text>
-                  </g>
-                );
-              }
+            if (list.length === 0) {
+              return (
+                <g>
+                  <text x={0} y={20} style={{ fill: "currentColor", fontSize: 12 }}>
+                    No regions loaded for this dataset. Try another dataset or source.
+                  </text>
+                </g>
+              );
+            }
 
-              return list.map((geo, idx) => {
-                const name = conf.getName(geo);
-                const isHL = !!highlightName && norm(name) === norm(highlightName);
-                const key = geo.rsmKey || name || idx;
-                return (
-                  <Geography
-                    key={key}
-                    geography={geo}
-                    onClick={() => onGeoClick(geo)}
-                    style={{
-                      default: {
-                        fill: isHL ? "var(--hl)" : baseFill,
-                        stroke: strokeColor,
-                        strokeWidth,
-                        outline: "none",
-                      },
-                      hover: { fill: isHL ? "var(--hl)" : hoverFill, outline: "none" },
-                      pressed: { fill: isHL ? "var(--hl)" : pressedFill, outline: "none" },
-                    }}
-                  />
-                );
-              });
-            }}
-          </GeoLayer>
-        </ZoomableGroup>
-      </ComposableMap>
-    </div>
+            return list.map((geo, idx) => {
+              const name = conf.getName(geo);
+              const isHL = !!highlightName && norm(name) === norm(highlightName);
+              const key = geo.rsmKey || name || idx;
+              return (
+                <Geography
+                  key={key}
+                  geography={geo}
+                  onClick={() => onGeoClick(geo)}
+                  style={{
+                    default: {
+                      fill: isHL ? "var(--hl)" : baseFill,
+                      stroke: strokeColor,
+                      strokeWidth,
+                      outline: "none",
+                    },
+                    hover: { fill: isHL ? "var(--hl)" : hoverFill, outline: "none" },
+                    pressed: { fill: isHL ? "var(--hl)" : pressedFill, outline: "none" },
+                  }}
+                />
+              );
+            });
+          }}
+        </GeoLayer>
+      </ZoomableGroup>
+    </ComposableMap>
   </div>
 
-  <aside
-    className="mqg-card mqg-pad"
-    style={{ display: "flex", flexDirection: "column", gap: 12 }}
-  >
-    <div className="mqg-stat">
-      <div className="box">
-        <div className="mqg-label">Score</div>
-        <div className="mqg-strong" style={{ fontSize: 22 }}>{score}</div>
+  {/* OVERLAY HUD */}
+  <aside className="mqg-hud">
+    {/* stats row */}
+    <div className="mqg-card mqg-pad">
+      <div className="mqg-stat">
+        <div className="box">
+          <div className="mqg-label">Score</div>
+          <div className="mqg-strong" style={{ fontSize: 22 }}>{score}</div>
+        </div>
+        <div className="box">
+          <div className="mqg-label">Streak</div>
+          <div className="mqg-strong" style={{ fontSize: 22 }}>{streak}</div>
+        </div>
+        <div className="box">
+          <div className="mqg-label">Lives</div>
+          <div className="mqg-strong" style={{ fontSize: 22 }}>{lives}</div>
+        </div>
       </div>
-      <div className="box">
-        <div className="mqg-label">Streak</div>
-        <div className="mqg-strong" style={{ fontSize: 22 }}>{streak}</div>
+
+      <div className="mqg-row mqg-meter" style={{ marginTop: 8 }}>
+        <div className="mqg-label">High score:</div>
+        <div className="mqg-strong">{highScore}</div>
       </div>
-      <div className="box">
-        <div className="mqg-label">Lives</div>
-        <div className="mqg-strong" style={{ fontSize: 22 }}>{lives}</div>
+
+      <div className="mqg-zoom" style={{ marginTop: 8 }}>
+        <button className="mqg-btn"
+          onClick={() => setZoom((z) => Math.max(typeof MIN_ZOOM !== "undefined" ? MIN_ZOOM : 0.8, z / (typeof ZOOM_STEP !== "undefined" ? ZOOM_STEP : 1.5)))}
+        >-</button>
+        <button className="mqg-btn"
+          onClick={() => setZoom((z) => Math.min(typeof MAX_ZOOM !== "undefined" ? MAX_ZOOM : 8, z * (typeof ZOOM_STEP !== "undefined" ? ZOOM_STEP : 1.5)))}
+        >+</button>
+        <button className="mqg-btn" onClick={() => setZoom(1)}>Reset View</button>
       </div>
     </div>
 
-    <div className="mqg-row mqg-meter">
-      <div className="mqg-label">High score:</div>
-      <div className="mqg-strong">{highScore}</div>
-    </div>
-
-    <div className="mqg-zoom">
-      <button
-        className="mqg-btn"
-        onClick={() =>
-          setZoom((z) =>
-            Math.max(typeof MIN_ZOOM !== "undefined" ? MIN_ZOOM : 0.8, z / (typeof ZOOM_STEP !== "undefined" ? ZOOM_STEP : 1.5))
-          )
-        }
-      >
-        -
-      </button>
-      <button
-        className="mqg-btn"
-        onClick={() =>
-          setZoom((z) =>
-            Math.min(typeof MAX_ZOOM !== "undefined" ? MAX_ZOOM : 8, z * (typeof ZOOM_STEP !== "undefined" ? ZOOM_STEP : 1.5))
-          )
-        }
-      >
-        +
-      </button>
-      <button className="mqg-btn" onClick={() => setZoom(1)}>Reset View</button>
-    </div>
-
+    {/* mode-specific panels */}
     {(mode === "click" || mode === "type") && (
-      <div className="mqg-row">
-        <label className="mqg-label">Countdown:</label>
-        <input
-          type="checkbox"
-          checked={timerOn}
-          onChange={(e) => setTimerOn(e.target.checked)}
-        />
-        <select
-          className="mqg-select"
-          value={duration}
-          onChange={(e) => setDuration(Number(e.target.value))}
-          disabled={!timerOn}
-        >
-          {[10, 20, 30, 60].map((s) => (
-            <option key={s} value={s}>
-              {s}s
-            </option>
-          ))}
-        </select>
-        {timerOn && <span className="mqg-strong mqg-meter">Time left: {timeLeft}s</span>}
+      <div className="mqg-card mqg-pad">
+        <div className="mqg-row">
+          <label className="mqg-label">Countdown:</label>
+          <input type="checkbox" checked={timerOn} onChange={(e) => setTimerOn(e.target.checked)} />
+          <select className="mqg-select" value={duration} onChange={(e) => setDuration(Number(e.target.value))} disabled={!timerOn}>
+            {[10,20,30,60].map((s) => <option key={s} value={s}>{s}s</option>)}
+          </select>
+          {timerOn && <span className="mqg-strong mqg-meter">Time left: {timeLeft}s</span>}
+        </div>
       </div>
     )}
 
     {mode === "click" && (
-     <div className="mqg-card mqg-pad" style={{ background: "var(--bg)" }}>
+      <div className="mqg-card mqg-pad" style={{ background: "var(--bg)" }}>
         <div className="mqg-label">Click this region</div>
-        <div
-  className="mqg-strong"
-  aria-live="polite"
-  style={{ fontSize: 28, marginTop: 4 }}
->
-  {prompt || "Loading..."}
-</div>
-        <div
-          className="mqg-flex-row"
-          style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid var(--border)" }}
-        >
+        <div className="mqg-strong" aria-live="polite" style={{ fontSize: 28, marginTop: 4 }}>
+          {prompt || "Loading..."}
+        </div>
+        <div className="mqg-flex-row" style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid var(--border)" }}>
           <label className="mqg-flex-row" style={{ fontSize: 12 }}>
-            <input
-              type="checkbox"
-              checked={hardMode}
-              onChange={(e) => setHardMode(e.target.checked)}
-            />{" "}
-            HARD MODE!
+            <input type="checkbox" checked={hardMode} onChange={(e) => setHardMode(e.target.checked)} /> HARD MODE!
           </label>
         </div>
       </div>
     )}
 
     {mode === "type" && (
-      <form
-        onSubmit={submitTyped}
-        className="mqg-card mqg-pad"
-        style={{ background: "var(--bg)", display: "flex", flexDirection: "column", gap: 8 }}
-      >
+      <form onSubmit={submitTyped} className="mqg-card mqg-pad" style={{ background: "var(--bg)", display: "flex", flexDirection: "column", gap: 8 }}>
         <div className="mqg-label">Type the highlighted region</div>
-        <input
-          className="mqg-input"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Start typing the name... (aliases OK)"
-          aria-label="Type region name"
-        />
+        <input className="mqg-input" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Start typing the name... (aliases OK)" aria-label="Type region name" />
         <button type="submit" className="mqg-btn">Submit</button>
       </form>
     )}
 
-{message && (
-  <div
-    className={
-      "mqg-msg " +
-      (flash === "correct" ? "mqg-correct" : flash === "wrong" ? "mqg-wrong" : "")
-    }
-  >
-    {message}
-  </div>
-)}
-
-    {mode === "explore" && selectedName && (
-      <div className="mqg-card mqg-pad" style={{ background: "var(--bg)" }}>
-        <div
-  className="mqg-strong"
-  style={{ fontSize: 28, marginBottom: 8 }}
->
-  {selectedName}
-</div>
-        {info ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {info.flag && (
-  <img
-    src={info.flag}
-    alt="flag"
-    className="mqg-flag"
-    style={{ cursor: "zoom-in" }}
-    onClick={() => setModalImg(info.flag)}
-  />
-)}
-{info.coat && (
-  <img
-    src={info.coat}
-    alt="coat of arms"
-    className="mqg-coat"
-    style={{ cursor: "zoom-in" }}
-    onClick={() => setModalImg(info.coat)}
-  />
-)}
-{info.image && !info.flag && (
-  <img
-    src={info.image}
-    alt="image"
-    style={{ height: 96, width: "auto", objectFit: "contain", cursor: "zoom-in" }}
-    onClick={() => setModalImg(info.image)}
-  />
-)}
-
-            {info.official && (
-              <div>
-                <strong>Official:</strong> {info.official}
-              </div>
-            )}
-            {info.capital && (
-              <div>
-                <strong>Capital:</strong> {info.capital}
-              </div>
-            )}
-            {info.population && (
-              <div>
-                <strong>Population:</strong>{" "}
-                {info.population?.toLocaleString?.()}
-              </div>
-            )}
-            {info.area && (
-              <div>
-                <strong>Area:</strong> {info.area?.toLocaleString?.()} km^2
-              </div>
-            )}
-            {(info.region || info.subregion) && (
-              <div>
-                <strong>Region:</strong> {info.region}
-                {info.subregion ? ` - ${info.subregion}` : ""}
-              </div>
-            )}
-            {info.summary && (
-              <p style={{ fontSize: 13, opacity: 0.85, lineHeight: 1.25 }}>
-                {info.summary}
-              </p>
-            )}
-            {info.sourceUrl && (
-              <a
-                href={info.sourceUrl}
-                target="_blank"
-                rel="noreferrer"
-                style={{ fontSize: 12, color: "#60a5fa", textDecoration: "underline" }}
-              >
-                Wikipedia
-              </a>
-            )}
-          </div>
-        ) : (
-          <div style={{ fontSize: 14, opacity: 0.7 }}>Loading details...</div>
-        )}
+    {message && (
+      <div className={"mqg-msg " + (flash === "correct" ? "mqg-correct" : flash === "wrong" ? "mqg-wrong" : "")}>
+        {message}
       </div>
     )}
-      </aside>
-  </section>
+
+    {mode === "explore" && selectedName && (
+  <div className="mqg-card mqg-pad" style={{ background: "var(--bg)" }}>
+    <div
+      className="mqg-strong"
+      style={{ fontSize: 28, marginBottom: 8 }}
+    >
+      {selectedName}
+    </div>
+
+    {info ? (
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {info.flag && (
+          <img
+            src={info.flag}
+            alt="flag"
+            className="mqg-flag"
+            style={{ cursor: "zoom-in" }}
+            onClick={() => setModalImg(info.flag)}
+          />
+        )}
+
+        {info.coat && (
+          <img
+            src={info.coat}
+            alt="coat of arms"
+            className="mqg-coat"
+            style={{ cursor: "zoom-in" }}
+            onClick={() => setModalImg(info.coat)}
+          />
+        )}
+
+        {info.image && !info.flag && (
+          <img
+            src={info.image}
+            alt="image"
+            style={{ height: 96, width: "auto", objectFit: "contain", cursor: "zoom-in" }}
+            onClick={() => setModalImg(info.image)}
+          />
+        )}
+
+        {info.official && (
+          <div>
+            <strong>Official:</strong> {info.official}
+          </div>
+        )}
+        {info.capital && (
+          <div>
+            <strong>Capital:</strong> {info.capital}
+          </div>
+        )}
+        {info.population && (
+          <div>
+            <strong>Population:</strong>{" "}
+            {info.population?.toLocaleString?.()}
+          </div>
+        )}
+        {info.area && (
+          <div>
+            <strong>Area:</strong> {info.area?.toLocaleString?.()} km^2
+          </div>
+        )}
+        {(info.region || info.subregion) && (
+          <div>
+            <strong>Region:</strong> {info.region}
+            {info.subregion ? ` - ${info.subregion}` : ""}
+          </div>
+        )}
+        {info.summary && (
+          <p style={{ fontSize: 13, opacity: 0.85, lineHeight: 1.25 }}>
+            {info.summary}
+          </p>
+        )}
+        {info.sourceUrl && (
+          <a
+            href={info.sourceUrl}
+            target="_blank"
+            rel="noreferrer"
+            style={{ fontSize: 12, color: "#60a5fa", textDecoration: "underline" }}
+          >
+            Wikipedia
+          </a>
+        )}
+      </div>
+    ) : (
+      <div style={{ fontSize: 14, opacity: 0.7 }}>Loading details...</div>
+    )}
+  </div>
+)}
+  </aside>
+</div>
+
 </div>
 
       {modalImg && (
