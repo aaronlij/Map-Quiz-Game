@@ -592,20 +592,26 @@ const pressedFill = isHard ? baseFill : "var(--pressed)";
   display: block;
   margin: 8px auto;      /* center smaller emblem */
 }
-/* flash feedback on the Click prompt card */
-.mqg-flash {
+/* flash feedback on the message box */
+.mqg-msg {
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:10px;
+  background:var(--bg);
+  font-size:14px;
   transition: background-color .25s ease, box-shadow .25s ease, border-color .25s ease;
 }
-.mqg-flash.mqg-correct {
-  background: rgba(16,185,129,.10);           /* emerald-500 @10% */
+.mqg-msg.mqg-correct {
+  background: rgba(16,185,129,.25);  /* green fill */
   border-color: rgba(16,185,129,.8);
-  box-shadow: 0 0 0 3px rgba(16,185,129,.35);
+  box-shadow: 0 0 0 2px rgba(16,185,129,.4) inset;
 }
-.mqg-flash.mqg-wrong {
-  background: rgba(239,68,68,.10);            /* red-500 @10% */
+.mqg-msg.mqg-wrong {
+  background: rgba(239,68,68,.25);   /* red fill */
   border-color: rgba(239,68,68,.8);
-  box-shadow: 0 0 0 3px rgba(239,68,68,.35);
+  box-shadow: 0 0 0 2px rgba(239,68,68,.4) inset;
 }
+
   `;
 
   // Geo renderer
@@ -786,13 +792,7 @@ const pressedFill = isHard ? baseFill : "var(--pressed)";
     )}
 
     {mode === "click" && (
-      <div
-  className={
-    "mqg-card mqg-pad mqg-flash " +
-    (flash === "correct" ? "mqg-correct" : flash === "wrong" ? "mqg-wrong" : "")
-  }
-  style={{ background: "var(--bg)" }}
->
+     <div className="mqg-card mqg-pad" style={{ background: "var(--bg)" }}>
         <div className="mqg-label">Click this region</div>
         <div
   className="mqg-strong"
@@ -835,7 +835,16 @@ const pressedFill = isHard ? baseFill : "var(--pressed)";
       </form>
     )}
 
-    {message && <div className="mqg-message">{message}</div>}
+{message && (
+  <div
+    className={
+      "mqg-msg " +
+      (flash === "correct" ? "mqg-correct" : flash === "wrong" ? "mqg-wrong" : "")
+    }
+  >
+    {message}
+  </div>
+)}
 
     {mode === "explore" && selectedName && (
       <div className="mqg-card mqg-pad" style={{ background: "var(--bg)" }}>
