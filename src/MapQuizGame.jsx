@@ -564,6 +564,21 @@ const pressedFill = isHard ? baseFill : "var(--pressed)";
     .mqg-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;color:white;z-index:60}
     .mqg-panel{background:#111827;border-radius:12px;padding:24px;min-width:280px;border:1px solid #374151}
     .mqg-panel h2{margin:0 0 8px 0}
+    .mqg-flag {
+  height: 40px;
+  width: auto;           /* prevent width:100% rules from stretching */
+  max-width: 100%;
+  object-fit: contain;
+  display: block;
+  margin: 8px 0;
+}
+.mqg-coat {
+  height: 40px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+  margin: 8px auto;      /* center smaller emblem */
+}
   `;
 
   // Geo renderer
@@ -800,29 +815,32 @@ const pressedFill = isHard ? baseFill : "var(--pressed)";
         {info ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {info.flag && (
-              <img
-                src={info.flag}
-                alt="flag"
-                style={{ height: 40, cursor: "zoom-in" }}
-                onClick={() => setModalImg(info.flag)}
-              />
-            )}
-            {info.coat && (
-              <img
-                src={info.coat}
-                alt="coat"
-                style={{ height: 40, cursor: "zoom-in" }}
-                onClick={() => setModalImg(info.coat)}
-              />
-            )}
-            {info.image && !info.flag && (
-              <img
-                src={info.image}
-                alt="image"
-                style={{ height: 96, objectFit: "contain", cursor: "zoom-in" }}
-                onClick={() => setModalImg(info.image)}
-              />
-            )}
+  <img
+    src={info.flag}
+    alt="flag"
+    className="mqg-flag"
+    style={{ cursor: "zoom-in" }}
+    onClick={() => setModalImg(info.flag)}
+  />
+)}
+{info.coat && (
+  <img
+    src={info.coat}
+    alt="coat of arms"
+    className="mqg-coat"
+    style={{ cursor: "zoom-in" }}
+    onClick={() => setModalImg(info.coat)}
+  />
+)}
+{info.image && !info.flag && (
+  <img
+    src={info.image}
+    alt="image"
+    style={{ height: 96, width: "auto", objectFit: "contain", cursor: "zoom-in" }}
+    onClick={() => setModalImg(info.image)}
+  />
+)}
+
             {info.official && (
               <div>
                 <strong>Official:</strong> {info.official}
