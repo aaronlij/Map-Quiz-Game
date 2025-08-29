@@ -572,10 +572,31 @@ const pressedFill = isHard ? baseFill : "var(--pressed)";
     .mqg-title{font-size:28px;font-weight:700;margin:0}
     .mqg-selects{display:flex;gap:8px;flex-wrap:wrap}
     .mqg-btn,.mqg-select,.mqg-input{border:1px solid var(--border);border-radius:10px;padding:8px 12px;background:var(--card);color:var(--text)}
-    .mqg-grid{display:grid;grid-template-columns:1fr;gap:16px}
-    @media(min-width:900px){.mqg-grid{grid-template-columns:1fr 360px}}
-    .mqg-card{border:1px solid var(--border);border-radius:12px;background:var(--card)}
-    .mqg-pad{padding:12px}
+    .mqg-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+@media(min-width:900px){
+  .mqg-grid { grid-template-columns: 2fr 360px; }  /* map gets more space */
+}
+.mqg-card.map-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+  display: flex;
+  flex-direction: column;
+}
+.mqg-map-container {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+}
+.mqg-map-container svg {
+  width: 100%;
+  height: 100%;
+}
+
     .mqg-stat{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
     .mqg-stat .box{border:1px solid var(--border);border-radius:10px;padding:10px;background:var(--bg)}
     .mqg-zoom{display:flex;gap:8px}
@@ -673,11 +694,12 @@ html, body { background: var(--bg); margin: 0;
 
         <section className="mqg-grid">
           <div className="mqg-card">
-    <div className="mqg-pad">
-      <ComposableMap
-        projection={conf.projection.name}
-        projectionConfig={{ scale: conf.projection.scale }}
-      >
+   <div className="mqg-card map-card">
+  <div className="mqg-map-container">
+    <ComposableMap
+      projection={conf.projection.name}
+      projectionConfig={{ scale: conf.projection.scale }}
+    >
         <ZoomableGroup
           zoom={zoom}
           center={conf.projection.center}
