@@ -611,6 +611,13 @@ const pressedFill = isHard ? baseFill : "var(--pressed)";
   border-color: rgba(239,68,68,.8);
   box-shadow: 0 0 0 2px rgba(239,68,68,.4) inset;
 }
+html, body { background: var(--bg); }
+.mqg-root {
+  padding-top: max(16px, env(safe-area-inset-top));
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
+  padding-left: max(16px, env(safe-area-inset-left));
+  padding-right: max(16px, env(safe-area-inset-right));
+}
 
   `;
 
