@@ -590,25 +590,6 @@ const pressedFill = isHard ? baseFill : "var(--pressed)";
   height: 100%;
 }
 
-/* Floating HUD panel on top of the map */
-.mqg-hud{
-  position: absolute;
-  top: clamp(64px, 8vh, 120px);         /* slide down from top a bit */
-  right: clamp(8px, 3vw, 32px);
-  width: min(420px, 42vw);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  z-index: 2;
-}
-
-/* Glassy cards over the map */
-.mqg-hud .mqg-card{
-  background: color-mix(in oklab, var(--card) 70%, transparent);
-  border: 1px solid var(--border);
-  backdrop-filter: blur(6px);
-}
-
 /* Make header breathe a bit since there’s no grid now */
 .mqg-header{ margin-bottom: 8px; }
 
@@ -668,6 +649,35 @@ html, body { background: var(--bg); margin: 0;
   padding-bottom: max(16px, env(safe-area-inset-bottom));
   padding-left: max(16px, env(safe-area-inset-left));
   padding-right: max(16px, env(safe-area-inset-right));
+}
+.mqg-overlay-panel {
+  position: absolute;
+  top: 80px;             /* below header */
+  right: 20px;
+  background: rgba(17, 24, 39, 0.9); /* dark semi-transparent */
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  max-width: 360px;
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 40;
+}
+
+/* Mobile layout */
+@media (max-width: 768px) {
+  .mqg-overlay-panel {
+    top: auto;
+    bottom: 0;
+    right: 0;
+    left: 0;
+    width: 100%;
+    max-width: none;
+    border-radius: 12px 12px 0 0;
+    padding: 20px;
+  }
 }
 
   `;
@@ -778,7 +788,8 @@ html, body { background: var(--bg); margin: 0;
   </div>
 
   {/* OVERLAY HUD */}
-  <aside className="mqg-hud">
+<div className="mqg-overlay-panel">
+
     {/* stats row */}
     <div className="mqg-card mqg-pad">
       <div className="mqg-stat">
@@ -942,7 +953,9 @@ html, body { background: var(--bg); margin: 0;
     )}
   </div>
 )}
-  </aside>
+
+</div>
+
 </div>
 
 </div>
