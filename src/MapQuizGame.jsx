@@ -112,14 +112,14 @@ const CTH = (slug) => `https://raw.githubusercontent.com/codeforamerica/click_th
 
 const DATASETS = {
   world: {
-    label: "World Countries",
+    label: "World",
     url: "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json",
     projection: { name: "geoEqualEarth", scale: 160, center: [0, 20] },
     getName: (geo) => geo?.properties?.name || geo?.properties?.NAME || "",
     exploreScope: "country",
   },
   usa48: {
-    label: "USA - 48 Contiguous States",
+    label: "USA",
     url: CTH("united-states"),
     projection: { name: "geoEqualEarth", scale: 700, center: [-98, 38] },
     getName: (geo) => geo?.properties?.name || geo?.properties?.NAME || "",
@@ -127,28 +127,28 @@ const DATASETS = {
     filter: (name) => !["alaska","hawaii","puerto rico","guam","american samoa","northern mariana islands","united states virgin islands","district of columbia"].includes(norm(name)),
   },
   canada: {
-    label: "Canada - Provinces/Territories",
+    label: "Canada",
     url: CTH("canada"),
     projection: { name: "geoEqualEarth", scale: 380, center: [-96, 62] },
     getName: (geo) => geo?.properties?.name || geo?.properties?.NAME || "",
     exploreScope: { country: "Canada" },
   },
   mexico: {
-    label: "Mexico - States",
+    label: "Mexico",
     url: CTH("mexico"),
     projection: { name: "geoEqualEarth", scale: 900, center: [-102, 24] },
     getName: (geo) => geo?.properties?.name || geo?.properties?.NAME || "",
     exploreScope: { country: "Mexico" },
   },
   india: {
-    label: "India - States & UTs",
+    label: "India",
     url: CTH("india"),
     projection: { name: "geoEqualEarth", scale: 1100, center: [79, 22] },
     getName: (geo) => geo?.properties?.name || geo?.properties?.NAME || "",
     exploreScope: { country: "India" },
   },
   israel: {
-    label: "Israel - Districts",
+    label: "Israel",
     // load from your repo's public folder to avoid CORS/license surprises
     url: "/data/israel.json",
     projection: { name: "geoEqualEarth", scale: 5200, center: [35.2, 31.7] },
@@ -156,34 +156,47 @@ const DATASETS = {
     exploreScope: { country: "Israel" },
   },
 uk_countries: {
-  label: "UK – Countries",
+  label: "UK",
   url: "/data/topo_uk_level_1.json", // you uploaded this to public/data/
   projection: { name: "geoEqualEarth", scale: 1300, center: [-2, 54] },
   getName: (geo) => pickNameUK(geo && geo.properties),
   exploreScope: { country: "United Kingdom" },
 },
 uk_counties: {
-  label: "UK – Counties",
+  label: "UK (Counties)",
   url: "/data/topo_uk_level_2.json",
   projection: { name: "geoEqualEarth", scale: 1300, center: [-2, 54] },
   getName: (geo) => pickNameUK(geo && geo.properties),
   exploreScope: { country: "United Kingdom" },
 },
   australia: {
-    label: "Australia - States & Territories",
+    label: "Australia",
     url: CTH("australia"),
     projection: { name: "geoEqualEarth", scale: 900, center: [134, -25] },
     getName: (geo) => geo?.properties?.name || geo?.properties?.NAME || "",
     exploreScope: { country: "Australia" },
   },
   nyc: {
-    label: "NYC - Boroughs",
+    label: "NYC",
     url: CTH("new-york-city-boroughs"),
     projection: { name: "geoEqualEarth", scale: 30000, center: [-73.94, 40.70] },
     getName: (geo) => geo?.properties?.name || geo?.properties?.boro_name || geo?.properties?.NAME || "",
     exploreScope: { city: "New York City", country: "United States" },
   },
 };
+
+const DATASET_ORDER = [
+  "world",
+  "usa48",
+  "nyc",
+  "canada",
+  "australia",
+  "uk_countries",
+  "uk_counties",
+  "mexico",
+  "india",
+  "israel"
+];
 
 const MODES = { explore: "Explore", click: "Click", type: "Type" };
 
@@ -568,18 +581,14 @@ export default function MapQuizGame() {
           </div>
           <div className="mqg-selects">
             <select className="mqg-select" value={dataset} onChange={(e)=> setDataset(e.target.value)} aria-label="Dataset">
-              <option value="world">World Countries</option>
-              <option value="usa48">USA - 48 Contiguous States</option>
-              <option value="canada">Canada - Provinces/Territories</option>
-              <option value="mexico">Mexico - States</option>
-              <option value="india">India - States &amp; UTs</option>
-              <option value="australia">Australia - States &amp; Territories</option>
-              <optgroup label="United Kingdom">
-                <option value="uk_countries">UK - Countries</option>
-                <option value="uk_counties">UK - Counties</option>
-              </optgroup>
-              <option value="nyc">NYC - Boroughs</option>
-              <option value="israel">Israel - Districts</option>
+              {DATASET_ORDER.map((key) => {
+    const ds = DATASETS[key];
+    return (
+      <option key={key} value={key}>
+        {ds.label}
+      </option>
+    );
+  })}
             </select>
             <select className="mqg-select" value={mode} onChange={(e)=>{setMode(e.target.value); setMessage(''); setInput('');}} aria-label="Mode">
               {Object.entries(MODES).map(([key,label])=> (<option key={key} value={key}>{label}</option>))}
