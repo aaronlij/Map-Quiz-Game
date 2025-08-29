@@ -746,7 +746,13 @@ const pressedFill = isHard ? baseFill : "var(--pressed)";
     {mode === "click" && (
       <div className="mqg-card mqg-pad" style={{ background: "var(--bg)" }}>
         <div className="mqg-label">Click this region</div>
-        <div className="mqg-strong" aria-live="polite">{prompt || "Loading..."}</div>
+        <div
+  className="mqg-strong"
+  aria-live="polite"
+  style={{ fontSize: 28, marginTop: 4 }}
+>
+  {prompt || "Loading..."}
+</div>
         <div
           className="mqg-flex-row"
           style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid var(--border)" }}
@@ -785,9 +791,12 @@ const pressedFill = isHard ? baseFill : "var(--pressed)";
 
     {mode === "explore" && selectedName && (
       <div className="mqg-card mqg-pad" style={{ background: "var(--bg)" }}>
-        <div className="mqg-strong" style={{ fontSize: 18, marginBottom: 6 }}>
-          {selectedName}
-        </div>
+        <div
+  className="mqg-strong"
+  style={{ fontSize: 28, marginBottom: 8 }}
+>
+  {selectedName}
+</div>
         {info ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {info.flag && (
