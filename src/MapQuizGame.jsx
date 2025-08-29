@@ -328,8 +328,7 @@ export default function MapQuizGame() {
   const [mode, setMode] = useState("click"); // explore | click | type
 
   // Hard mode toggles (Click mode only)
-  const [hideBorders, setHideBorders] = useState(false);
-  const [disableHighlights, setDisableHighlights] = useState(false);
+ const [hardMode, setHardMode] = useState(false);
 
   // Game state
   const [prompt, setPrompt] = useState(null);
@@ -528,11 +527,12 @@ export default function MapQuizGame() {
     "--hl":"#A7F3D0",
   };
 
-  const baseFill = "var(--map)";
-  const strokeColor = hideBorders ? "transparent" : "var(--stroke)";
-  const strokeWidth = hideBorders ? 0 : 0.5;
-  const hoverFill = disableHighlights && mode === "click" ? baseFill : "var(--hover)";
-  const pressedFill = disableHighlights && mode === "click" ? baseFill : "var(--pressed)";
+const baseFill = "var(--map)";
+const isHard = hardMode && mode === "click";
+const strokeColor = isHard ? "transparent" : "var(--stroke)";
+const strokeWidth = isHard ? 0 : 0.5;
+const hoverFill = isHard ? baseFill : "var(--hover)";
+const pressedFill = isHard ? baseFill : "var(--pressed)";
 
   // Light CSS (no framework)
   const css = `
@@ -674,16 +674,20 @@ export default function MapQuizGame() {
             )}
 
             {mode === "click" && (
-              <div className="mqg-card mqg-pad" style={{background:'var(--bg)'}}>
-                <div className="mqg-label">Click this region</div>
-                <div className="mqg-strong" aria-live="polite">{prompt || "Loading..."}</div>
-                <div className="mqg-flex-row" style={{marginTop:8,paddingTop:8,borderTop:'1px solid var(--border)'}}>
-                  <label className="mqg-flex-row" style={{fontSize:12}}><input type="checkbox" checked={hideBorders} onChange={(e)=> setHideBorders(e.target.checked)} /> Hide borders</label>
-                  <label className="mqg-flex-row" style={{fontSize:12}}><input type="checkbox" checked={disableHighlights} onChange={(e)=> setDisableHighlights(e.target.checked)} /> Disable highlights</label>
-                </div>
-              </div>
-            )}
-
+  <div className="mqg-card mqg-pad" style={{background:'var(--bg)'}}>
+    <div className="mqg-label">Click this region</div>
+    <div className="mqg-strong" aria-live="polite">{prompt || "Loading..."}</div>
+    <div className="mqg-flex-row" style={{marginTop:8,paddingTop:8,borderTop:'1px solid var(--border)'}}>
+      <label className="mqg-flex-row" style={{fontSize:12}}>
+        <input
+          type="checkbox"
+          checked={hardMode}
+          onChange={(e)=> setHardMode(e.target.checked)}
+        /> HARD MODE!
+      </label>
+    </div>
+  </div>
+)}
             {mode === "type" && (
               <form onSubmit={submitTyped} className="mqg-card mqg-pad" style={{background:'var(--bg)',display:'flex',flexDirection:'column',gap:8}}>
                 <div className="mqg-label">Type the highlighted region</div>
