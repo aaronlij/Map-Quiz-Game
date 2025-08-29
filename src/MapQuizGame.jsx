@@ -603,132 +603,266 @@ const pressedFill = isHard ? baseFill : "var(--pressed)";
 
         <section className="mqg-grid">
           <div className="mqg-card">
-            <div className="mqg-pad">
-              <ComposableMap projection={conf.projection.name} projectionConfig={{ scale: conf.projection.scale }}>
-               <ZoomableGroup
-  zoom={zoom}
-  center={conf.projection.center}
-  minZoom={MIN_ZOOM}
-  maxZoom={MAX_ZOOM}
-/>
-                  <GeoLayer>
-                    {({ geographies }) => {
-                      const raw = safeList(geographies);
-                      const list = raw.filter((g)=> {
-                        if (!isRenderableFeature(g)) return false;
-                        const nm = conf.getName(g);
-                        if (!nm) return false;
-                        if (typeof conf.filter === 'function' && !conf.filter(nm)) return false;
-                        return true;
-                      });
-                      namesRef.current = list.map((g)=> conf.getName(g));
-                      if (lastLenRef.current !== list.length) { lastLenRef.current = list.length; setTimeout(()=> setGeoVersion(v=>v+1),0); }
-                      if (list.length === 0) {
-                        return (
-                          <g>
-                            <text x={0} y={20} style={{fill: 'currentColor', fontSize: 12}}>
-                              No regions loaded for this dataset. Try another dataset or source.
-                            </text>
-                          </g>
-                        );
-                      }
-                      return list.map((geo,idx)=>{
-                        const name = conf.getName(geo);
-                        const isHL = !!highlightName && norm(name) === norm(highlightName);
-                        const key = geo.rsmKey || name || idx;
-                        return (
-                          <Geography key={key} geography={geo} onClick={()=> onGeoClick(geo)}
-                            style={{
-                              default:{ fill: isHL?"var(--hl)":baseFill, stroke: strokeColor, strokeWidth, outline:"none"},
-                              hover:{ fill: isHL?"var(--hl)":hoverFill, outline:"none"},
-                              pressed:{ fill: isHL?"var(--hl)":pressedFill, outline:"none"}
-                            }}
-                          />
-                        );
-                      });
+    <div className="mqg-pad">
+      <ComposableMap
+        projection={conf.projection.name}
+        projectionConfig={{ scale: conf.projection.scale }}
+      >
+        <ZoomableGroup
+          zoom={zoom}
+          center={conf.projection.center}
+          minZoom={typeof MIN_ZOOM !== "undefined" ? MIN_ZOOM : 0.8}
+          maxZoom={typeof MAX_ZOOM !== "undefined" ? MAX_ZOOM : 8}
+        >
+          <GeoLayer>
+            {({ geographies }) => {
+              const raw = safeList(geographies);
+              const list = raw.filter((g) => {
+                if (!isRenderableFeature(g)) return false;
+                const nm = conf.getName(g);
+                if (!nm) return false;
+                if (typeof conf.filter === "function" && !conf.filter(nm)) return false;
+                return true;
+              });
+
+              namesRef.current = list.map((g) => conf.getName(g));
+
+              if (lastLenRef.current !== list.length) {
+                lastLenRef.current = list.length;
+                setTimeout(() => setGeoVersion((v) => v + 1), 0);
+              }
+
+              if (list.length === 0) {
+                return (
+                  <g>
+                    <text x={0} y={20} style={{ fill: "currentColor", fontSize: 12 }}>
+                      No regions loaded for this dataset. Try another dataset or source.
+                    </text>
+                  </g>
+                );
+              }
+
+              return list.map((geo, idx) => {
+                const name = conf.getName(geo);
+                const isHL = !!highlightName && norm(name) === norm(highlightName);
+                const key = geo.rsmKey || name || idx;
+                return (
+                  <Geography
+                    key={key}
+                    geography={geo}
+                    onClick={() => onGeoClick(geo)}
+                    style={{
+                      default: {
+                        fill: isHL ? "var(--hl)" : baseFill,
+                        stroke: strokeColor,
+                        strokeWidth,
+                        outline: "none",
+                      },
+                      hover: { fill: isHL ? "var(--hl)" : hoverFill, outline: "none" },
+                      pressed: { fill: isHL ? "var(--hl)" : pressedFill, outline: "none" },
                     }}
-                  </GeoLayer>
-                </ZoomableGroup>
-              </ComposableMap>
-            </div>
-          </div>
-
-          <aside className="mqg-card mqg-pad" style={{display:'flex',flexDirection:'column',gap:12}}>
-            <div className="mqg-stat">
-              <div className="box"><div className="mqg-label">Score</div><div className="mqg-strong" style={{fontSize:22}}>{score}</div></div>
-              <div className="box"><div className="mqg-label">Streak</div><div className="mqg-strong" style={{fontSize:22}}>{streak}</div></div>
-              <div className="box"><div className="mqg-label">Lives</div><div className="mqg-strong" style={{fontSize:22}}>{lives}</div></div>
-            </div>
-
-            <div className="mqg-row mqg-meter">
-              <div className="mqg-label">High score:</div>
-              <div className="mqg-strong">{highScore}</div>
-            </div>
-
-            <div className="mqg-zoom">
-              <button className="mqg-btn" onClick={() => setZoom(z => Math.max(MIN_ZOOM, z / ZOOM_STEP))}>-</button>
-<button className="mqg-btn" onClick={() => setZoom(z => Math.min(MAX_ZOOM, z * ZOOM_STEP))}>+</button>
-<button className="mqg-btn" onClick={() => setZoom(1)}>Reset View</button>
-            </div>
-
-            {(mode === "click" || mode === "type") && (
-              <div className="mqg-row">
-                <label className="mqg-label">Countdown:</label>
-                <input type="checkbox" checked={timerOn} onChange={(e)=> setTimerOn(e.target.checked)} />
-                <select className="mqg-select" value={duration} onChange={(e)=> setDuration(Number(e.target.value))} disabled={!timerOn}>
-                  {[10,20,30,60].map((s)=> <option key={s} value={s}>{s}s</option>)}
-                </select>
-                {timerOn && <span className="mqg-strong mqg-meter">Time left: {timeLeft}s</span>}
-              </div>
-            )}
-
-            {mode === "click" && (
-  <div className="mqg-card mqg-pad" style={{background:'var(--bg)'}}>
-    <div className="mqg-label">Click this region</div>
-    <div className="mqg-strong" aria-live="polite">{prompt || "Loading..."}</div>
-    <div className="mqg-flex-row" style={{marginTop:8,paddingTop:8,borderTop:'1px solid var(--border)'}}>
-      <label className="mqg-flex-row" style={{fontSize:12}}>
-        <input
-          type="checkbox"
-          checked={hardMode}
-          onChange={(e)=> setHardMode(e.target.checked)}
-        /> HARD MODE!
-      </label>
+                  />
+                );
+              });
+            }}
+          </GeoLayer>
+        </ZoomableGroup>
+      </ComposableMap>
     </div>
   </div>
-)}
-            {mode === "type" && (
-              <form onSubmit={submitTyped} className="mqg-card mqg-pad" style={{background:'var(--bg)',display:'flex',flexDirection:'column',gap:8}}>
-                <div className="mqg-label">Type the highlighted region</div>
-                <input className="mqg-input" value={input} onChange={(e)=> setInput(e.target.value)} placeholder="Start typing the name... (aliases OK)" aria-label="Type region name" />
-                <button type="submit" className="mqg-btn">Submit</button>
-              </form>
+
+  <aside
+    className="mqg-card mqg-pad"
+    style={{ display: "flex", flexDirection: "column", gap: 12 }}
+  >
+    <div className="mqg-stat">
+      <div className="box">
+        <div className="mqg-label">Score</div>
+        <div className="mqg-strong" style={{ fontSize: 22 }}>{score}</div>
+      </div>
+      <div className="box">
+        <div className="mqg-label">Streak</div>
+        <div className="mqg-strong" style={{ fontSize: 22 }}>{streak}</div>
+      </div>
+      <div className="box">
+        <div className="mqg-label">Lives</div>
+        <div className="mqg-strong" style={{ fontSize: 22 }}>{lives}</div>
+      </div>
+    </div>
+
+    <div className="mqg-row mqg-meter">
+      <div className="mqg-label">High score:</div>
+      <div className="mqg-strong">{highScore}</div>
+    </div>
+
+    <div className="mqg-zoom">
+      <button
+        className="mqg-btn"
+        onClick={() =>
+          setZoom((z) =>
+            Math.max(typeof MIN_ZOOM !== "undefined" ? MIN_ZOOM : 0.8, z / (typeof ZOOM_STEP !== "undefined" ? ZOOM_STEP : 1.5))
+          )
+        }
+      >
+        -
+      </button>
+      <button
+        className="mqg-btn"
+        onClick={() =>
+          setZoom((z) =>
+            Math.min(typeof MAX_ZOOM !== "undefined" ? MAX_ZOOM : 8, z * (typeof ZOOM_STEP !== "undefined" ? ZOOM_STEP : 1.5))
+          )
+        }
+      >
+        +
+      </button>
+      <button className="mqg-btn" onClick={() => setZoom(1)}>Reset View</button>
+    </div>
+
+    {(mode === "click" || mode === "type") && (
+      <div className="mqg-row">
+        <label className="mqg-label">Countdown:</label>
+        <input
+          type="checkbox"
+          checked={timerOn}
+          onChange={(e) => setTimerOn(e.target.checked)}
+        />
+        <select
+          className="mqg-select"
+          value={duration}
+          onChange={(e) => setDuration(Number(e.target.value))}
+          disabled={!timerOn}
+        >
+          {[10, 20, 30, 60].map((s) => (
+            <option key={s} value={s}>
+              {s}s
+            </option>
+          ))}
+        </select>
+        {timerOn && <span className="mqg-strong mqg-meter">Time left: {timeLeft}s</span>}
+      </div>
+    )}
+
+    {mode === "click" && (
+      <div className="mqg-card mqg-pad" style={{ background: "var(--bg)" }}>
+        <div className="mqg-label">Click this region</div>
+        <div className="mqg-strong" aria-live="polite">{prompt || "Loading..."}</div>
+        <div
+          className="mqg-flex-row"
+          style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid var(--border)" }}
+        >
+          <label className="mqg-flex-row" style={{ fontSize: 12 }}>
+            <input
+              type="checkbox"
+              checked={hardMode}
+              onChange={(e) => setHardMode(e.target.checked)}
+            />{" "}
+            HARD MODE!
+          </label>
+        </div>
+      </div>
+    )}
+
+    {mode === "type" && (
+      <form
+        onSubmit={submitTyped}
+        className="mqg-card mqg-pad"
+        style={{ background: "var(--bg)", display: "flex", flexDirection: "column", gap: 8 }}
+      >
+        <div className="mqg-label">Type the highlighted region</div>
+        <input
+          className="mqg-input"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Start typing the name... (aliases OK)"
+          aria-label="Type region name"
+        />
+        <button type="submit" className="mqg-btn">Submit</button>
+      </form>
+    )}
+
+    {message && <div className="mqg-message">{message}</div>}
+
+    {mode === "explore" && selectedName && (
+      <div className="mqg-card mqg-pad" style={{ background: "var(--bg)" }}>
+        <div className="mqg-strong" style={{ fontSize: 18, marginBottom: 6 }}>
+          {selectedName}
+        </div>
+        {info ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {info.flag && (
+              <img
+                src={info.flag}
+                alt="flag"
+                style={{ height: 40, cursor: "zoom-in" }}
+                onClick={() => setModalImg(info.flag)}
+              />
             )}
-
-            {message && <div className="mqg-message">{message}</div>}
-
-            {mode === "explore" && selectedName && (
-              <div className="mqg-card mqg-pad" style={{background:'var(--bg)'}}>
-                <div className="mqg-strong" style={{fontSize:18,marginBottom:6}}>{selectedName}</div>
-                {info ? (
-                  <div style={{display:'flex',flexDirection:'column',gap:8}}>
-                    {info.flag && <img src={info.flag} alt="flag" style={{height:40,cursor:'zoom-in'}} onClick={()=> setModalImg(info.flag)} />}
-                    {info.coat && <img src={info.coat} alt="coat" style={{height:40,cursor:'zoom-in'}} onClick={()=> setModalImg(info.coat)} />}
-                    {info.image && !info.flag && <img src={info.image} alt="image" style={{height:96,objectFit:'contain',cursor:'zoom-in'}} onClick={()=> setModalImg(info.image)} />}
-                    {info.official && <div><strong>Official:</strong> {info.official}</div>}
-                    {info.capital && <div><strong>Capital:</strong> {info.capital}</div>}
-                    {info.population && <div><strong>Population:</strong> {info.population?.toLocaleString?.()}</div>}
-                    {info.area && <div><strong>Area:</strong> {info.area?.toLocaleString?.()} km^2</div>}
-                    {(info.region || info.subregion) && <div><strong>Region:</strong> {info.region}{info.subregion?` - ${info.subregion}`:""}</div>}
-                    {info.summary && <p style={{fontSize:13,opacity:.85,lineHeight:1.25}}>{info.summary}</p>}
-                    {info.sourceUrl && <a href={info.sourceUrl} target="_blank" rel="noreferrer" style={{fontSize:12,color:'#60a5fa',textDecoration:'underline'}}>Wikipedia</a>}
-                  </div>
-                ) : (
-                  <div style={{fontSize:14,opacity:.7}}>Loading details...</div>
-                )}
+            {info.coat && (
+              <img
+                src={info.coat}
+                alt="coat"
+                style={{ height: 40, cursor: "zoom-in" }}
+                onClick={() => setModalImg(info.coat)}
+              />
+            )}
+            {info.image && !info.flag && (
+              <img
+                src={info.image}
+                alt="image"
+                style={{ height: 96, objectFit: "contain", cursor: "zoom-in" }}
+                onClick={() => setModalImg(info.image)}
+              />
+            )}
+            {info.official && (
+              <div>
+                <strong>Official:</strong> {info.official}
               </div>
             )}
-          </aside>
+            {info.capital && (
+              <div>
+                <strong>Capital:</strong> {info.capital}
+              </div>
+            )}
+            {info.population && (
+              <div>
+                <strong>Population:</strong>{" "}
+                {info.population?.toLocaleString?.()}
+              </div>
+            )}
+            {info.area && (
+              <div>
+                <strong>Area:</strong> {info.area?.toLocaleString?.()} km^2
+              </div>
+            )}
+            {(info.region || info.subregion) && (
+              <div>
+                <strong>Region:</strong> {info.region}
+                {info.subregion ? ` - ${info.subregion}` : ""}
+              </div>
+            )}
+            {info.summary && (
+              <p style={{ fontSize: 13, opacity: 0.85, lineHeight: 1.25 }}>
+                {info.summary}
+              </p>
+            )}
+            {info.sourceUrl && (
+              <a
+                href={info.sourceUrl}
+                target="_blank"
+                rel="noreferrer"
+                style={{ fontSize: 12, color: "#60a5fa", textDecoration: "underline" }}
+              >
+                Wikipedia
+              </a>
+            )}
+          </div>
+        ) : (
+          <div style={{ fontSize: 14, opacity: 0.7 }}>Loading details...</div>
+        )}
+      </div>
+    )}
+  </aside>
         </section>
       </div>
 
