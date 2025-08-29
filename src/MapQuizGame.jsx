@@ -328,18 +328,16 @@ const ZOOM_STEP = 1.8;  // was 1.5
   const [theme, setTheme] = useState(() => (typeof localStorage !== "undefined" && localStorage.getItem("mqg_theme")) || "light");
   useEffect(() => { try { localStorage.setItem("mqg_theme", theme); } catch {} }, [theme]);
 
-  // Keep the OS bars in sync with the in-app theme (iOS & Android)
+ // Sync theme-color meta with current theme
 useEffect(() => {
-  const dark = theme === "dark";
-  const barColor = dark ? "#0b0f14" : "#ffffff";
-
-  // Update all theme-color meta tags (Android Chrome, iOS 15+)
-  const tcMetas = document.querySelectorAll('meta[name="theme-color"]');
-  tcMetas.forEach((m) => m.setAttribute("content", barColor));
-
-  // Update iOS standalone status bar style (older iOS uses this)
-  const appleBar = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
-  if (appleBar) appleBar.setAttribute("content", dark ? "black" : "default");
+  const barColor = theme === "dark" ? "#0b0f14" : "#ffffff";
+  let tag = document.querySelector('meta[name="theme-color"]');
+  if (!tag) {
+    tag = document.createElement("meta");
+    tag.name = "theme-color";
+    document.head.appendChild(tag);
+  }
+  tag.setAttribute("content", barColor);
 }, [theme]);
 
 
@@ -626,7 +624,9 @@ const pressedFill = isHard ? baseFill : "var(--pressed)";
   border-color: rgba(239,68,68,.8);
   box-shadow: 0 0 0 2px rgba(239,68,68,.4) inset;
 }
-html, body { background: var(--bg); }
+html, body { background: var(--bg); margin: 0;
+  padding: 0;
+  min-height: 100%; }
 .mqg-root {
   padding-top: max(16px, env(safe-area-inset-top));
   padding-bottom: max(16px, env(safe-area-inset-bottom));
