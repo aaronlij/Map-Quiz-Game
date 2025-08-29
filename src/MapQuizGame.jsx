@@ -428,18 +428,16 @@ const triggerFlash = (kind) => {
     setGameOver(false);
   }, [dataset]);
 
-  // Regenerate prompt when features load or mode changes
-  useEffect(() => {
-    if ((mode === "click" || mode === "type") && namesRef.current.length) {
-      const list = namesRef.current;
-      setPrompt(list[Math.floor(Math.random() * list.length)] || null);
-      setInput("");
-      setMessage("");
-      setTimeLeft(duration);
-    } else if (mode !== "explore") {
-      setPrompt(null);
-    }
-  }, [geoVersion, mode, dataset]);
+  // Initialize the no-repeat queue whenever geos/mode/dataset change
+useEffect(() => {
+  if (mode === "click" || mode === "type") {
+    seedRemaining();                                 // fill queue from namesRef.current
+    Promise.resolve().then(() => nextPromptOrFinish()); // show the first prompt
+  } else {
+    setPrompt(null);
+  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [geoVersion, mode, dataset]);
 
   const onGeoClick = (geo) => {
     if (gameOver) return;
@@ -461,41 +459,28 @@ const triggerFlash = (kind) => {
     if (!prompt) return;
 
     // correct click
-    if (norm(name) === norm(prompt)) {
-      setScore((s) => { const val = s + 1; bumpHighScore(val); return val; });
-      setStreak((s) => s + 1);
-      setMessage("Correct!");
-      triggerFlash('correct');
-      const list = namesRef.current;
-      if (list.length) setPrompt(list[Math.floor(Math.random() * list.length)]);
-      setTimeLeft(duration);
+if (norm(name) === norm(prompt)) {
+  setScore((s) => { const val = s + 1; bumpHighScore(val); return val; });
+  setStreak((s) => s + 1);
+  setMessage("Correct!");
+  triggerFlash('correct');
+  nextPromptOrFinish();
+  setTimeLeft(duration);
     } else {
-      // wrong click -> lose a life, reset streak, show what they clicked,
-      // and choose a new prompt (preferably not the same as the old prompt or the clicked region)
-      setStreak(0);
-      setLives((l) => {
-        const next = Math.max(0, l - 1);
-        if (next === 0) setGameOver(true);
-        return next;
-      });
-      setMessage(`That was ${name}.`);
-      triggerFlash('wrong');
+  // wrong click -> lose a life...
+  setStreak(0);
+  setLives((l) => {
+    const next = Math.max(0, l - 1);
+    if (next === 0) setGameOver(true);
+    return next;
+  });
+  setMessage(`That was ${name}.`);
+  triggerFlash('wrong');
 
+  nextPromptOrFinish();
+  setTimeLeft(duration);
+}
 
-      // build candidate list excluding the previous prompt and the clicked name
-      const all = namesRef.current || [];
-      const candidates = all.filter((n) => norm(n) !== norm(prompt) && norm(n) !== norm(name));
-
-      if (candidates.length) {
-        setPrompt(candidates[Math.floor(Math.random() * candidates.length)]);
-      } else {
-        // fallback: pick anything except the old prompt
-        const fallback = all.filter((n) => norm(n) !== norm(prompt));
-        setPrompt(fallback.length ? fallback[Math.floor(Math.random() * fallback.length)] : null);
-      }
-
-      setTimeLeft(duration);
-    }
     return;
   }
 
@@ -507,14 +492,13 @@ const triggerFlash = (kind) => {
   const submitTyped = (e) => {
     if (e?.preventDefault) e.preventDefault();
     if (gameOver || !prompt) return;
-    if (matchesAnswer(input, prompt)) {
-      setScore((s) => { const val = s + 1; bumpHighScore(val); return val; });
-      setStreak((s) => s + 1);
-      setMessage("Correct!");
-      setInput("");
-      const list = namesRef.current;
-      if (list.length) setPrompt(list[Math.floor(Math.random() * list.length)]);
-      setTimeLeft(duration);
+   if (matchesAnswer(input, prompt)) {
+  setScore((s) => { const val = s + 1; bumpHighScore(val); return val; });
+  setStreak((s) => s + 1);
+  setMessage("Correct!");
+  setInput("");
+  nextPromptOrFinish();
+  setTimeLeft(duration);
     } else {
       setStreak(0);
       setLives((l) => {
@@ -534,6 +518,30 @@ const triggerFlash = (kind) => {
   return list[Math.floor(Math.random() * list.length)];
 }
 
+  function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// remaining prompts for the current game (no repeats)
+const [remaining, setRemaining] = useState([]);
+
+  function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// remaining prompts for the current game (no repeats)
+const [remaining, setRemaining] = useState([]);
+  
   const resetAll = () => {
   setScore(0);
   setStreak(0);
@@ -544,11 +552,10 @@ const triggerFlash = (kind) => {
   setSelectedName(null);
   setInfo(null);
   setTimeLeft(duration);
-  
-  // immediately choose a new prompt if possible
+
   if (mode === "click" || mode === "type") {
-    const next = pickRandomPrompt();
-    setPrompt(next);             // <- this is what prevents the "Loading..." hang
+    seedRemaining();
+    Promise.resolve().then(() => nextPromptOrFinish());
   } else {
     setPrompt(null);
   }
