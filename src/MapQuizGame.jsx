@@ -518,6 +518,30 @@ if (norm(name) === norm(prompt)) {
   return list[Math.floor(Math.random() * list.length)];
 }
 
+
+// remaining prompts for the current game (no repeats)
+const [remaining, setRemaining] = useState([]);
+
+  function seedRemaining() {
+  const uniques = Array.from(
+    new Set((namesRef.current || []).map((n) => n))
+  ).filter(Boolean);
+  setRemaining(shuffle(uniques));
+}
+
+function nextPromptOrFinish() {
+  setRemaining((curr) => {
+    if (!curr || curr.length === 0) {
+      setPrompt(null);
+      setGameOver(true);
+      return [];
+    }
+    const [head, ...tail] = curr;
+    setPrompt(head);
+    return tail;
+  });
+}
+
   function shuffle(arr) {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -526,21 +550,6 @@ if (norm(name) === norm(prompt)) {
   }
   return a;
 }
-
-// remaining prompts for the current game (no repeats)
-const [remaining, setRemaining] = useState([]);
-
-  function shuffle(arr) {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
-// remaining prompts for the current game (no repeats)
-const [remaining, setRemaining] = useState([]);
   
   const resetAll = () => {
   setScore(0);
@@ -727,8 +736,6 @@ html, body { background: var(--bg); margin: 0;
 
   /* keep the map from creating horizontal scroll while the sheet is open */
   body { overflow-x: hidden; overflow-y: hidden; }
-}
-
 }
 
   `;
