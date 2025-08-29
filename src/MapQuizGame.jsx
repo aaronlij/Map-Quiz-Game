@@ -975,9 +975,9 @@ html, body { background: var(--bg); margin: 0;
         )}
       </div>
     )}
-  </aside>
-        </section>
-      </div>
+      </aside>
+  </section>
+</div>
 
       {modalImg && (
         <div className="mqg-modal" onClick={()=> setModalImg(null)}>
