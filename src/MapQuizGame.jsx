@@ -545,6 +545,7 @@ const triggerFlash = (kind) => {
     "--hover":"#F59E0B",
     "--pressed":"#D97706",
     "--hl":"#10B981",
+      "--sheet":"rgba(17,24,39,.92)" 
   } : {
     "--bg":"#ffffff",
     "--text":"#111827",
@@ -555,6 +556,7 @@ const triggerFlash = (kind) => {
     "--hover":"#F59E0B",
     "--pressed":"#FDE68A",
     "--hl":"#A7F3D0",
+    "--sheet":"rgba(255,255,255,.94)"
   };
 
 const baseFill = "var(--map)";
@@ -655,9 +657,9 @@ html, body { background: var(--bg); margin: 0;
   position: absolute;
   top: 80px;                  /* below header */
   right: 20px;
-  background: rgba(17, 24, 39, 0.9);
+  background: var(--sheet);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 28px;
   padding: 16px;
   max-width: 360px;
   color: var(--text);
@@ -675,13 +677,15 @@ html, body { background: var(--bg); margin: 0;
 /* MOBILE: bottom sheet, full width, scrolls inside */
 @media (max-width: 768px) {
   .mqg-overlay-panel {
+    position: fixed;
     top: auto;
     bottom: env(safe-area-inset-bottom, 0);
     right: 0;
     left: 0;
-    width: 100%;
+    margin: 0;
     max-width: none;
-    border-radius: 12px 12px 0 0;
+    width: auto;
+    border-radius: 28px 28px 0 0;
     padding: 16px;
 
     /* 👇 cap height to viewport and enable internal scrolling */
