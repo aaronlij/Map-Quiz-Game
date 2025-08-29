@@ -528,9 +528,32 @@ const triggerFlash = (kind) => {
     }
   };
 
+  function pickRandomPrompt() {
+  const list = namesRef.current || [];
+  if (!list.length) return null;
+  return list[Math.floor(Math.random() * list.length)];
+}
+
   const resetAll = () => {
-    setScore(0); setStreak(0); setLives(5); setMessage(""); setInput(""); setPrompt(null); setGameOver(false); setSelectedName(null); setInfo(null); setTimeLeft(duration);
-  };
+  setScore(0);
+  setStreak(0);
+  setLives(5);
+  setMessage("");
+  setInput("");
+  setGameOver(false);
+  setSelectedName(null);
+  setInfo(null);
+  setTimeLeft(duration);
+  
+  // immediately choose a new prompt if possible
+  if (mode === "click" || mode === "type") {
+    const next = pickRandomPrompt();
+    setPrompt(next);             // <- this is what prevents the "Loading..." hang
+  } else {
+    setPrompt(null);
+  }
+};
+
 
   const highlightName = mode === "type" ? prompt : null;
 
