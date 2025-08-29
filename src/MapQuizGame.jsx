@@ -482,6 +482,31 @@ function pickZoomForBounds(bounds, containerWidth, containerHeight) {
   return Math.min(typeof MAX_ZOOM !== "undefined" ? MAX_ZOOM : 8, Math.max(1.2, raw));
 }
 
+// Compute [minLon, minLat, maxLon, maxLat] for a feature
+function getFeatureBounds(geo) {
+  if (!geo || !geo.geometry) return null;
+
+  let coords = [];
+  if (geo.geometry.type === "Polygon") {
+    coords = geo.geometry.coordinates.flat(1);
+  } else if (geo.geometry.type === "MultiPolygon") {
+    coords = geo.geometry.coordinates.flat(2);
+  } else {
+    return null;
+  }
+
+  let minLon = 180, maxLon = -180, minLat = 90, maxLat = -90;
+  coords.forEach(([lon, lat]) => {
+    if (lon < minLon) minLon = lon;
+    if (lon > maxLon) maxLon = lon;
+    if (lat < minLat) minLat = lat;
+    if (lat > maxLat) maxLat = lat;
+  });
+
+  return [minLon, minLat, maxLon, maxLat];
+}
+
+  
 // Center & zoom on a feature; on mobile push it upward based on bottom sheet height
 function focusOnGeo(geo) {
   const b = getFeatureBounds(geo);
