@@ -693,12 +693,10 @@ html, body { background: var(--bg); margin: 0;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
 
-    /* a little lift so it feels like a sheet */
-    box-shadow: 0 -8px 24px rgba(0,0,0,.35);
   }
 
   /* keep the map from creating horizontal scroll while the sheet is open */
-  body { overflow-x: hidden; }
+  body { overflow-x: hidden; overflow-y: hidden; }
 }
 
 }
