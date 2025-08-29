@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { ComposableMap, Geographies, Geography, ZoomableGroup } from "react-simple-maps";
+import { geoCentroid, geoBounds } from "d3-geo";
 
 /**
  * Map Quiz Game – Stable Build r5a (ASCII-safe)
@@ -387,6 +388,18 @@ const triggerFlash = (kind) => {
   // Zoom/pan state
   const [zoom, setZoom] = useState(1);
 
+  // Track map DOM size so we can pick a decent zoom
+const mapRef = useRef(null);
+
+// Center of the viewport for ZoomableGroup (starts at dataset default)
+const [center, setCenter] = useState(() => DATASETS["world"].projection.center);
+
+// Keep center in sync when dataset changes
+useEffect(() => {
+  setCenter(DATASETS[dataset].projection.center);
+}, [dataset]);
+
+
   // Geography load tracking
   const namesRef = useRef([]);
   const lastLenRef = useRef(0);
@@ -439,21 +452,75 @@ useEffect(() => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [geoVersion, mode, dataset]);
 
+  // If we enter Explore mode and already have a selectedName, try to refocus on it
+useEffect(() => {
+  if (mode === "explore" && selectedName) {
+    // TODO: if you want true auto-refocus, store the last clicked geo in a ref
+    // For now, no-op: the user’s click already calls focusOnGeo.
+  }
+}, [mode, selectedName]);
+
+  // Heuristic: choose a zoom that roughly fits the bounds in the viewport.
+// We don't rely on the internal projection instance, so we use a degree-span guess.
+function pickZoomForBounds(bounds, containerWidth, containerHeight) {
+  if (!bounds || !Array.isArray(bounds) || bounds.length !== 2) return 1;
+
+  const [minLon, minLat] = bounds[0];
+  const [maxLon, maxLat] = bounds[1];
+  const lonSpan = Math.max(0.1, Math.abs(maxLon - minLon));
+  const latSpan = Math.max(0.1, Math.abs(maxLat - minLat));
+
+  // Adjust for viewport aspect (lat spans visually stretch differently)
+  const aspect = containerWidth / Math.max(1, containerHeight);
+  const effectiveSpan = Math.max(lonSpan, latSpan * (1 / aspect + 0.5)); // light bias
+
+  // Map span (in degrees) to a zoom factor. Tuned for EqualEarth-like projections.
+  // Smaller span -> larger zoom. Clamp with your MIN/MAX settings.
+  const raw = 180 / effectiveSpan; // 180 is a decent starting constant for "fit"
+  return Math.min(typeof MAX_ZOOM !== "undefined" ? MAX_ZOOM : 8, Math.max(1.2, raw));
+}
+
+// Focus the map on a single Geography feature
+function focusOnGeo(geo) {
+  try {
+    const c = geoCentroid(geo);           // [lon, lat]
+    const b = geoBounds(geo);             // [[minLon,minLat],[maxLon,maxLat]]
+
+    // Measure current map container
+    const el = mapRef.current;
+    const rect = el ? el.getBoundingClientRect() : { width: 1024, height: 600 };
+
+    const z = pickZoomForBounds(b, rect.width, rect.height);
+
+    setCenter(c);
+    setZoom(z);
+  } catch {
+    // Fallback: just center on dataset default if anything goes wrong
+    setCenter(DATASETS[dataset].projection.center);
+    setZoom(1.6);
+  }
+}
+
   const onGeoClick = (geo) => {
     if (gameOver) return;
     const name = conf.getName(geo);
     if (!name) return;
 
-    if (mode === "explore") {
-      setSelectedName(name);
-      setInfo(null);
-      if (conf.exploreScope === "country") {
-        fetchCountryInfo(name).then(setInfo);
-      } else {
-        fetchSubnationalInfo(name, conf.exploreScope).then(setInfo);
-      }
-      return;
-    }
+if (mode === "explore") {
+  setSelectedName(name);
+  setInfo(null);
+
+  // Zoom/pan to the clicked feature and keep it highlighted
+  focusOnGeo(geo);
+
+  if (conf.exploreScope === "country") {
+    fetchCountryInfo(name).then(setInfo);
+  } else {
+    fetchSubnationalInfo(name, conf.exploreScope).then(setInfo);
+  }
+  return;
+}
+
 
     if (mode === "click") {
     if (!prompt) return;
@@ -571,7 +638,7 @@ function nextPromptOrFinish() {
 };
 
 
-  const highlightName = mode === "type" ? prompt : null;
+  const highlightName = mode === "type" ? prompt : (mode === "explore" ? selectedName : null);
 
   // Theme palette via CSS variables
   const vars = theme === "dark" ? {
@@ -778,14 +845,14 @@ html, body { background: var(--bg); margin: 0;
         <div className="mqg-stage">
 
   {/* MAP AS BACKGROUND */}
-  <div className="mqg-map">
+  <div className="mqg-map" ref={mapRef}>
     <ComposableMap
       projection={conf.projection.name}
       projectionConfig={{ scale: conf.projection.scale }}
     >
       <ZoomableGroup
         zoom={zoom}
-        center={conf.projection.center}
+        center={center}
         minZoom={typeof MIN_ZOOM !== "undefined" ? MIN_ZOOM : 0.8}
         maxZoom={typeof MAX_ZOOM !== "undefined" ? MAX_ZOOM : 8}
       >
