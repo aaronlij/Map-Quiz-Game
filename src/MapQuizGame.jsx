@@ -185,7 +185,7 @@ uk_counties: {
   },
 };
 
-const MODES = { explore: "Explore", click: "Click Prompt", type: "Type Prompt" };
+const MODES = { explore: "Explore", click: "Click", type: "Type" };
 
 /******************** Matching ********************/
 const NAME_ALIASES = {
