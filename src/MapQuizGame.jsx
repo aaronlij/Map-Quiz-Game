@@ -385,6 +385,8 @@ const triggerFlash = (kind) => {
   const [info, setInfo] = useState(null);
   const [modalImg, setModalImg] = useState(null);
 
+  const sheetRef = useRef(null);
+
   // Zoom/pan state
   const [zoom, setZoom] = useState(1);
 
@@ -480,25 +482,38 @@ function pickZoomForBounds(bounds, containerWidth, containerHeight) {
   return Math.min(typeof MAX_ZOOM !== "undefined" ? MAX_ZOOM : 8, Math.max(1.2, raw));
 }
 
-// Focus the map on a single Geography feature
+// Center & zoom on a feature; on mobile push it upward based on bottom sheet height
 function focusOnGeo(geo) {
-  try {
-    const c = geoCentroid(geo);           // [lon, lat]
-    const b = geoBounds(geo);             // [[minLon,minLat],[maxLon,maxLat]]
+  const b = getFeatureBounds(geo);
+  if (!b) return;
 
-    // Measure current map container
-    const el = mapRef.current;
-    const rect = el ? el.getBoundingClientRect() : { width: 1024, height: 600 };
+  const [minLon, minLat, maxLon, maxLat] = b;
+  const cx = (minLon + maxLon) / 2;
+  let cy  = (minLat + maxLat) / 2;
 
-    const z = pickZoomForBounds(b, rect.width, rect.height);
+  // crude zoom estimate based on lat/lon span vs viewport; clamped
+  const lonSpan = Math.max(0.0001, maxLon - minLon);
+  const latSpan = Math.max(0.0001, maxLat - minLat);
+  const kx = window.innerWidth  / (lonSpan * 8);
+  const ky = window.innerHeight / (latSpan * 8);
+  const targetZoom = Math.max(1, Math.min(MAX_ZOOM, Math.min(kx, ky)));
 
-    setCenter(c);
-    setZoom(z);
-  } catch {
-    // Fallback: just center on dataset default if anything goes wrong
-    setCenter(DATASETS[dataset].projection.center);
-    setZoom(1.6);
+  // --- mobile nudge: use actual sheet height ---
+  if (isMobile) {
+    const sheetH = sheetRef.current ? sheetRef.current.offsetHeight : 0;
+    // fraction of viewport covered by the sheet
+    const frac = Math.max(0, Math.min(0.9, sheetH / Math.max(1, window.innerHeight)));
+
+    // Convert that fraction into an upward latitude shift:
+    // - Base nudge uses the feature's own lat span (keeps small regions visible)
+    // - Scale by the fraction + a small buffer so it lands around the top quarter
+    const nudge = latSpan * (0.9 * frac + 0.15);
+
+    cy -= nudge;
   }
+
+  setCenter([cx, cy]);
+  setZoom(targetZoom);
 }
 
   const onGeoClick = (geo) => {
@@ -913,7 +928,7 @@ html, body { background: var(--bg); margin: 0;
   </div>
 
   {/* OVERLAY HUD */}
-<div className="mqg-overlay-panel">
+<div className="mqg-overlay-panel" ref={sheetRef}>
 
     {/* stats row */}
     <div className="mqg-card mqg-pad">
