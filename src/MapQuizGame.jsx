@@ -650,11 +650,12 @@ html, body { background: var(--bg); margin: 0;
   padding-left: max(16px, env(safe-area-inset-left));
   padding-right: max(16px, env(safe-area-inset-right));
 }
+/* OVERLAY PANEL (desktop & default) */
 .mqg-overlay-panel {
   position: absolute;
-  top: 80px;             /* below header */
+  top: 80px;                  /* below header */
   right: 20px;
-  background: rgba(17, 24, 39, 0.9); /* dark semi-transparent */
+  background: rgba(17, 24, 39, 0.9);
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 16px;
@@ -664,20 +665,38 @@ html, body { background: var(--bg); margin: 0;
   flex-direction: column;
   gap: 12px;
   z-index: 40;
+
+  /* 👇 keep the panel inside the viewport and let it scroll if needed */
+  max-height: calc(100vh - 100px);   /* header + a little breathing room */
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
-/* Mobile layout */
+/* MOBILE: bottom sheet, full width, scrolls inside */
 @media (max-width: 768px) {
   .mqg-overlay-panel {
     top: auto;
-    bottom: 0;
+    bottom: env(safe-area-inset-bottom, 0);
     right: 0;
     left: 0;
     width: 100%;
     max-width: none;
     border-radius: 12px 12px 0 0;
-    padding: 20px;
+    padding: 16px;
+
+    /* 👇 cap height to viewport and enable internal scrolling */
+    max-height: min(72vh, calc(100vh - 120px));
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+
+    /* a little lift so it feels like a sheet */
+    box-shadow: 0 -8px 24px rgba(0,0,0,.35);
   }
+
+  /* keep the map from creating horizontal scroll while the sheet is open */
+  body { overflow-x: hidden; }
+}
+
 }
 
   `;
