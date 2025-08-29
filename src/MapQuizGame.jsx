@@ -407,6 +407,12 @@ useEffect(() => {
 
   const conf = DATASETS[dataset];
 
+  // keep a mutable center so we can re-center on features
+const [center, setCenter] = useState(conf.projection.center);
+useEffect(() => {
+  setCenter(conf.projection.center);
+}, [dataset]); // reset center when dataset changes
+
   // Countdown timer
   const [timerOn, setTimerOn] = useState(false);
   const [duration, setDuration] = useState(20); // seconds
@@ -429,6 +435,25 @@ useEffect(() => {
     }, 1000);
     return () => clearInterval(id);
   }, [timerOn, duration, mode, gameOver]);
+
+  // detect mobile viewport
+const [isMobile, setIsMobile] = useState(
+  typeof window !== "undefined"
+    ? window.matchMedia("(max-width: 768px)").matches
+    : false
+);
+useEffect(() => {
+  if (typeof window === "undefined") return;
+  const mq = window.matchMedia("(max-width: 768px)");
+  const onChange = () => setIsMobile(mq.matches);
+  if (mq.addEventListener) mq.addEventListener("change", onChange);
+  else mq.addListener(onChange);
+  onChange();
+  return () => {
+    if (mq.removeEventListener) mq.removeEventListener("change", onChange);
+    else mq.removeListener(onChange);
+  };
+}, []);
 
   // Reset on dataset change
   useEffect(() => {
@@ -501,6 +526,60 @@ function focusOnGeo(geo) {
   }
 }
 
+  // Compute lon/lat bounds for Polygon/MultiPolygon
+function getFeatureBounds(geo) {
+  const g = geo && geo.geometry;
+  if (!g || !g.coordinates) return null;
+
+  let minLon =  Infinity, minLat =  Infinity;
+  let maxLon = -Infinity, maxLat = -Infinity;
+
+  const scan = (arr) => {
+    for (const p of arr) {
+      if (Array.isArray(p[0])) scan(p);
+      else {
+        const [lon, lat] = p;
+        if (isNum(lon) && isNum(lat)) {
+          if (lon < minLon) minLon = lon;
+          if (lon > maxLon) maxLon = lon;
+          if (lat < minLat) minLat = lat;
+          if (lat > maxLat) maxLat = lat;
+        }
+      }
+    }
+  };
+  scan(g.coordinates);
+
+  if (!isFinite(minLon)) return null;
+  return [minLon, minLat, maxLon, maxLat];
+}
+
+// Center & zoom on a feature; on mobile push it upward so it sits above the sheet
+function focusOnGeo(geo) {
+  const b = getFeatureBounds(geo);
+  if (!b) return;
+
+  const [minLon, minLat, maxLon, maxLat] = b;
+  const cx = (minLon + maxLon) / 2;
+  let cy = (minLat + maxLat) / 2;
+
+  // crude zoom estimate based on lat/lon span vs viewport; clamped
+  const lonSpan = Math.max(0.0001, maxLon - minLon);
+  const latSpan = Math.max(0.0001, maxLat - minLat);
+  const kx = window.innerWidth  / (lonSpan * 8);   // tuning constant
+  const ky = window.innerHeight / (latSpan * 8);
+  const targetZoom = Math.max(1, Math.min(MAX_ZOOM, Math.min(kx, ky)));
+
+  // Nudge up on mobile so the feature appears in the top quarter
+  if (isMobile) {
+    const offset = latSpan * 0.35;   // push ~35% upward
+    cy -= offset;
+  }
+
+  setCenter([cx, cy]);
+  setZoom(targetZoom);
+}
+
   const onGeoClick = (geo) => {
     if (gameOver) return;
     const name = conf.getName(geo);
@@ -509,10 +588,7 @@ function focusOnGeo(geo) {
 if (mode === "explore") {
   setSelectedName(name);
   setInfo(null);
-
-  // Zoom/pan to the clicked feature and keep it highlighted
-  focusOnGeo(geo);
-
+  focusOnGeo(geo); // center/zoom with mobile offset
   if (conf.exploreScope === "country") {
     fetchCountryInfo(name).then(setInfo);
   } else {
@@ -520,7 +596,6 @@ if (mode === "explore") {
   }
   return;
 }
-
 
     if (mode === "click") {
     if (!prompt) return;
@@ -638,7 +713,10 @@ function nextPromptOrFinish() {
 };
 
 
-  const highlightName = mode === "type" ? prompt : (mode === "explore" ? selectedName : null);
+ const highlightName =
+  mode === "type" ? prompt :
+  mode === "explore" ? selectedName :
+  null;
 
   // Theme palette via CSS variables
   const vars = theme === "dark" ? {
