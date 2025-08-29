@@ -482,7 +482,7 @@ function pickZoomForBounds(bounds, containerWidth, containerHeight) {
   return Math.min(typeof MAX_ZOOM !== "undefined" ? MAX_ZOOM : 8, Math.max(1.2, raw));
 }
 
-// Compute [minLon, minLat, maxLon, maxLat] for a feature
+// Helper: compute [minLon, minLat, maxLon, maxLat] for a feature
 function getFeatureBounds(geo) {
   if (!geo || !geo.geometry) return null;
 
@@ -506,39 +506,33 @@ function getFeatureBounds(geo) {
   return [minLon, minLat, maxLon, maxLat];
 }
 
-  
-// Center & zoom on a feature; on mobile push it upward based on bottom sheet height
+// Focus the map on the clicked/highlighted geo
 function focusOnGeo(geo) {
-  const b = getFeatureBounds(geo);
-  if (!b) return;
+  const bounds = getFeatureBounds(geo);
+  if (!bounds) return;
 
-  const [minLon, minLat, maxLon, maxLat] = b;
-  const cx = (minLon + maxLon) / 2;
-  let cy  = (minLat + maxLat) / 2;
+  const [[minLon, minLat, maxLon, maxLat]] = [bounds];
+  const centerLon = (minLon + maxLon) / 2;
+  const centerLat = (minLat + maxLat) / 2;
 
-  // crude zoom estimate based on lat/lon span vs viewport; clamped
-  const lonSpan = Math.max(0.0001, maxLon - minLon);
-  const latSpan = Math.max(0.0001, maxLat - minLat);
-  const kx = window.innerWidth  / (lonSpan * 8);
-  const ky = window.innerHeight / (latSpan * 8);
-  const targetZoom = Math.max(1, Math.min(MAX_ZOOM, Math.min(kx, ky)));
+  const width = maxLon - minLon;
+  const height = maxLat - minLat;
 
-  // --- mobile nudge: use actual sheet height ---
-  if (isMobile) {
-    const sheetH = sheetRef.current ? sheetRef.current.offsetHeight : 0;
-    // fraction of viewport covered by the sheet
-    const frac = Math.max(0, Math.min(0.9, sheetH / Math.max(1, window.innerHeight)));
+  // crude zoom heuristic: smaller area → zoom in more
+  const newZoom = Math.min(
+    MAX_ZOOM,
+    Math.max(1.5, 4 / Math.max(width / 30, height / 15))
+  );
 
-    // Convert that fraction into an upward latitude shift:
-    // - Base nudge uses the feature's own lat span (keeps small regions visible)
-    // - Scale by the fraction + a small buffer so it lands around the top quarter
-    const nudge = latSpan * (0.9 * frac + 0.15);
+  // 👉 detect mobile
+  const isMobile = window.innerWidth <= 768;
 
-    cy -= nudge;
-  }
+  // shift center upward on mobile so the panel doesn’t overlap
+  const shiftedLat = isMobile ? centerLat + height * 0.8 : centerLat;
 
-  setCenter([cx, cy]);
-  setZoom(targetZoom);
+  setZoom(newZoom);
+  // center is [lon, lat]
+  conf.projection.center = [centerLon, shiftedLat];
 }
 
   const onGeoClick = (geo) => {
